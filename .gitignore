@@ -141,3 +141,4 @@ cython_debug/
 venv/
 .idea/
 .vscode/
+.DS_Store
