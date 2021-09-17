@@ -24,9 +24,7 @@ pd.set_option('display.width', 500)
 pd.set_option('display.expand_frame_repr', False)
 from mlxtend.frequent_patterns import apriori, association_rules
 
-# Hemen verimizi hatırlayalım özlemişizdir.
-
-df_ = pd.read_excel("datasets/online_retail_II.xlsx", sheet_name="Year 2010-2011")
+df_ = pd.read_excel("/Users/mebaysan/Desktop/VBO-VeriBilimiKampi-Donem6/Datasets/online_retail_II.xlsx", sheet_name="Year 2010-2011")
 df = df_.copy()
 df.info()
 df.head()
@@ -62,6 +60,8 @@ df = retail_data_prep(df)
 
 # Verinin gelmesini istediğimiz durum:
 
+# Satırlar her bir işlemi (sepeti) temsil ederken, sütunlar ürünleri temsil eder. Hangi sepette hangi ürün var binary olarak temsil edilir. Ürün sepette varsa keişim 1 olur, yoksa 0 olur.
+
 # Description   NINE DRAWER OFFICE TIDY   SET 2 TEA TOWELS I LOVE LONDON    SPACEBOY BABY GIFT SET
 # Invoice
 # 536370                              0                                 1                       0
@@ -71,17 +71,17 @@ df = retail_data_prep(df)
 # 537463                              0                                 0                       1
 
 
-df_fr = df[df['Country'] == "France"]
+df_fr = df[df['Country'] == "France"] # işlemleri Fransa özeline indiriyoruz
 
-df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).head(20)
+df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).head(20) # hangi sepette (Invoice) hangi üründen (Description) kaç adet var
 
-df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).unstack().iloc[0:5, 0:5]
+df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).unstack().iloc[0:5, 0:5] # istediğim veri yapısını hazırlıyorum, ürün sepette yoksa NaN geliyor. unstack sayesinde pivot yapıyorum
 
-df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).unstack().fillna(0).iloc[0:5, 0:5]
+df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).unstack().fillna(0).iloc[0:5, 0:5] # veri yapımda NaN gelmesin diye eğer sepette ürün yoksa 0 yazıyorum. Hala bir problem var, ürünün sepette kaç adet olduğunu  gözlemliyorum çünkü agg yaptık ve miktarın sum'ını aldık.
 
 
 df_fr.groupby(['Invoice', 'Description']).agg({"Quantity": "sum"}).unstack().fillna(0).applymap(
-    lambda x: 1 if x > 0 else 0).iloc[0:5, 0:5]
+    lambda x: 1 if x > 0 else 0).iloc[0:5, 0:5] # yukarıdaki veri yapısını bir adım daha atarak tam istediğim hale getiriyorum. Eğer ürün sepette geçiyorsa (toplam quantity'i 1 veya daha büyük ise) 1, geçmiyorsa 0 yazıyorum. applymap fonksiyonu tüm hücrelere uygulanır
 
 df_fr.groupby(['Invoice', 'Description']). \
     agg({"Quantity": "sum"}). \
@@ -90,7 +90,7 @@ df_fr.groupby(['Invoice', 'Description']). \
     applymap(lambda x: 1 if x > 0 else 0).iloc[0:5, 0:5]
 
 
-def create_invoice_product_df(dataframe, id=False):
+def create_invoice_product_df(dataframe, id=False): # ister id'e göre ister ürün adına (description) göre veri yapısını oluştururum
     if id:
         return dataframe.groupby(['Invoice', "StockCode"])['Quantity'].sum().unstack().fillna(0). \
             applymap(lambda x: 1 if x > 0 else 0)
@@ -105,24 +105,33 @@ fr_inv_pro_df.head()
 fr_inv_pro_df = create_invoice_product_df(df_fr, id=True)
 fr_inv_pro_df.head()
 
-def check_id(dataframe, stock_code):
+def check_id(dataframe, stock_code): # id'e göre arl için oluşturduğum veri yapısında id'nin adını öğrenmek için bir fonksiyon
     product_name = dataframe[dataframe["StockCode"] == stock_code][["Description"]].values[0].tolist()
     print(product_name)
 
-check_id(df_fr, 10002)
+check_id(df_fr, 10002) # 10002 id'li ürünün adı ne?
 
 ############################################
 # Birliktelik Kurallarının Çıkarılması
 ############################################
 
 # Tüm olası ürün birlikteliklerinin olasılıkları
-frequent_itemsets = apriori(fr_inv_pro_df, min_support=0.01, use_colnames=True)
+frequent_itemsets = apriori(fr_inv_pro_df, min_support=0.01, use_colnames=True) # apriori algoritmasını uyguluyoruz. min 0.01 olasılıkla birlikte satılabilecek ürünler gelsin diyoruz. her bir ürünün birbirleriyle beraber satılma olasılıkları
 frequent_itemsets.sort_values("support", ascending=False)
 
 
 # Birliktelik kurallarının çıkarılması:
-rules = association_rules(frequent_itemsets, metric="support", min_threshold=0.01)
+rules = association_rules(frequent_itemsets, metric="support", min_threshold=0.01) # apriori algoritmasını uyguladığımız verisetinden support metriğini kullanarak birliktelik kurallarını çıkartıyoruz
 rules.sort_values("support", ascending=False).head()
+# antecedents -> ilk ürün
+# consequents -> sonraki ürün(ler)
+# antecedent support -> ilk ürünün tek bağına gözlenme olasılığı
+# consequent support -> sonraki ürün(ler) ün gözlenme olasılığı
+# support -> ilk ve sonraki ürün(ler) beraber gözlenme olasılığı
+# confidence -> apriori algoritmasındaki confidence değeri, ilk ürün satıldığında sonraki ürün(ler) satılma olasılığı
+# lift -> apriori algoritmasındaki lift değeri, ilk ürün satıldığında sonraki ürün(ler) satılma olasılığı lift kat kadar artar
+# leverage -> kaldıraç demektir. lift'e benzer fakat support'u yüksek değerlere öncelik verme eğilimindedir. Bir tık yanlı bir metriktir.
+# conviction -> consequents olmadan antecedents'in olması
 rules.sort_values("lift", ascending=False).head(500)
 
 # support: İkisinin birlikte görülme olasılığı
@@ -185,9 +194,9 @@ sorted_rules = rules.sort_values("lift", ascending=False)
 
 recommendation_list = []
 
-for i, product in enumerate(sorted_rules["antecedents"]):
-    for j in list(product):
-        if j == product_id:
+for i, product in enumerate(sorted_rules["antecedents"]): # ilk ürün (antecedents) sütununda geziyoruz
+    for j in list(product): # ilgili ürünü(ler) listeye çeviriyorum
+        if j == product_id: # eğer antecedents hücresinde sepetteki ürünüm varsa, ilgili satırın consequents hücresine gidiyorum ve ordaki ürünleri listeye atıyorum
             recommendation_list.append(list(sorted_rules.iloc[i]["consequents"])[0])
 
 
@@ -215,5 +224,4 @@ def arl_recommender(rules_df, product_id, rec_count=1):
 arl_recommender(rules, 22492, 1)
 arl_recommender(rules, 22492, 2)
 arl_recommender(rules, 22492, 3)
-
 
