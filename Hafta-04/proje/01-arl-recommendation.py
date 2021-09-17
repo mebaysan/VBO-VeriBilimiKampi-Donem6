@@ -40,7 +40,7 @@ def create_apriori_datastructure(dataframe, id=False):
     else:
         grouped = germany_df.groupby(
             ['Invoice', 'Description'], as_index=False).agg({'Quantity': 'sum'})
-        apriori_datastructure = pd.pivot(data=grouped, index='Invoice', columns='StockCode', values='Quantity').fillna(
+        apriori_datastructure = pd.pivot(data=grouped, index='Invoice', columns='Description', values='Quantity').fillna(
             0).applymap(lambda x: 1 if x > 0 else 0)
         return apriori_datastructure
 
