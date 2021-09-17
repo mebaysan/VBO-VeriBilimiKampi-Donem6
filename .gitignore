@@ -143,3 +143,5 @@ venv/
 .vscode/
 .DS_Store
 online_retail_II.xlsx
+movie_lens_dataset/
+the_movies_dataset/
