@@ -18,22 +18,24 @@
 #################################
 # 1. TF-IDF Matrisinin Oluşturulması
 #################################
-
+# !pip install sklearn
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 500)
 pd.set_option('display.expand_frame_repr', False)
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
-df = pd.read_csv("datasets/the_movies_dataset/movies_metadata.csv", low_memory=False)  # DtypeWarning kapamak icin
+df = pd.read_csv("/Users/mebaysan/Desktop/VBO-VeriBilimiKampi-Donem6/Datasets/the_movies_dataset/movies_metadata.csv",
+                 low_memory=False)  # DtypeWarning kapamak icin
 df.head()
 df.shape
 
 df["overview"].head()
 
-
-# countVectorizer yöntemi
+# 2 farklı yöntemimiz var:
+# countVectorizer
 # tf-idf yöntemi
 
 #################################
@@ -45,7 +47,6 @@ df["overview"].head()
 # 1,2,3,...,10000
 # 12,23,12,...,0
 
-from sklearn.feature_extraction.text import CountVectorizer
 corpus = ['This is the first document.',
           'This document is the second document.',
           'And this is the third one.',
@@ -56,7 +57,6 @@ vectorizer = CountVectorizer()
 X = vectorizer.fit_transform(corpus)
 vectorizer.get_feature_names()
 X.toarray()
-
 
 
 #################################
@@ -77,7 +77,6 @@ X.toarray()
 # Satırdaki tüm gözlemler karekök sonucunda elde edilen değerlere bölünür.
 
 # word tf-idf
-from sklearn.feature_extraction.text import TfidfVectorizer
 vectorizer = TfidfVectorizer(analyzer='word')
 X = vectorizer.fit_transform(corpus)
 vectorizer.get_feature_names()
@@ -96,7 +95,7 @@ df['overview'] = df['overview'].fillna('')
 
 tfidf_matrix = tfidf.fit_transform(df['overview'])
 
-tfidf_matrix.shape
+tfidf_matrix.shape # bu matriste; satırlar filmleri (overview) ve sütunlar overview'lar içerisindeki unique kelimeleri temsil eder
 
 df['title'].shape
 
@@ -105,11 +104,11 @@ df['title'].shape
 # 2. Cosine Similarity Matrisinin Oluşturulması
 #################################
 
-cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix) # kosinüs benzerliğini hesapladığımız matris
 cosine_sim.shape
-cosine_sim[1]
+cosine_sim[1] # 1. satırda; 1. satırdaki filmin diğer tüm filmlerle olan benzerliği var
 
-# cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
+# cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix) # istersek linear_kernel fonksiyonu ile de benzerlik hesaplayabiliriz
 # cosine_sim.shape
 # cosine_sim[1]
 
@@ -123,7 +122,7 @@ df = df[~df["title"].isna()]
 # title'lar ve indexleri yakalayıp saklayalım.
 indices = pd.Series(df.index, index=df['title'])
 
-# dublicated olanların silinmesi.
+# duplicated olanların silinmesi.
 indices = indices[~indices.index.duplicated(keep='last')]
 indices.shape
 indices[:10]
@@ -136,9 +135,9 @@ movie_index = indices["Sherlock Holmes"]
 cosine_sim[movie_index]
 
 # bu film ile diğer filmler arasındaki skorların df'e çevrilmesi:
-similarity_scores = pd.DataFrame(cosine_sim[movie_index], columns=["score"])
+similarity_scores = pd.DataFrame(cosine_sim[movie_index], columns=["score"]) # movie_index teki filmin benzerliklerini dataframe'e çevirdik
 
-movie_indices = similarity_scores.sort_values("score", ascending=False)[1:11].index
+movie_indices = similarity_scores.sort_values("score", ascending=False)[1:11].index # score'a (benzerlik) göre büyükten küçüğe sıraladık, 1'den 10'a kadar gittik. Çünkü 0. index kendisi
 
 df['title'].iloc[movie_indices]
 
@@ -155,17 +154,20 @@ def content_based_recommender(title, cosine_sim, dataframe):
     # title'ın index'ini yakalama
     movie_index = indices[title]
     # title'a gore benzerlik skorlarını hesapalama
-    similarity_scores = pd.DataFrame(cosine_sim[movie_index], columns=["score"])
+    similarity_scores = pd.DataFrame(
+        cosine_sim[movie_index], columns=["score"])
     # kendisi haric ilk 10 filmi getirme
-    movie_indices = similarity_scores.sort_values("score", ascending=False)[1:11].index
+    movie_indices = similarity_scores.sort_values(
+        "score", ascending=False)[1:11].index
     return dataframe['title'].iloc[movie_indices]
-
 
 
 content_based_recommender("Sherlock Holmes", cosine_sim, df)
 content_based_recommender("The Godfather", cosine_sim, df)
 content_based_recommender('The Dark Knight Rises', cosine_sim, df)
+content_based_recommender('Who Am I', cosine_sim, df)
 
+df[df['title'].str.contains('Cyborg',na=False)]['title'] # içinde istediğimiz kelime geçen filmler
 
 # peki ya cosine_sim kaybolursa ne olacak?
 # del cosine_sim
@@ -182,7 +184,3 @@ def calculate_cosine_sim(dataframe):
 
 cosine_sim = calculate_cosine_sim(df)
 content_based_recommender('The Dark Knight Rises', cosine_sim, df)
-
-
-
-
