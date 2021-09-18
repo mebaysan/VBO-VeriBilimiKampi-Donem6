@@ -15,6 +15,7 @@
 
 # Birinci yol:
 def create_user_movie_df():
+    # item-based veri yapısı
     import pandas as pd
     movie = pd.read_csv('datasets/movie_lens_dataset/movie.csv')
     rating = pd.read_csv('datasets/movie_lens_dataset/rating.csv')
@@ -27,20 +28,16 @@ def create_user_movie_df():
 
 user_movie_df = create_user_movie_df()
 
-# İkinci yol:
-# import pickle
-# user_movie_df = pickle.load(open('user_movie_df.pkl', 'rb'))
-
 import pandas as pd
 pd.set_option('display.max_columns', 5)
-random_user = int(pd.Series(user_movie_df.index).sample(1, random_state=45).values)
+random_user = int(pd.Series(user_movie_df.index).sample(1, random_state=45).values) # rastgele bir kullanıcı seçiyoruz
 
 #############################################
 # Adım 2: Öneri Yapılacak Kullanıcının İzlediği Filmlerin Belirlenmesi
 #############################################
 
-random_user_df = user_movie_df[user_movie_df.index == random_user]
-movies_watched = random_user_df.columns[random_user_df.notna().any()].tolist()
+random_user_df = user_movie_df[user_movie_df.index == random_user] # kullanıcının izlediği filmler
+movies_watched = random_user_df.columns[random_user_df.notna().any()].tolist() # izlediği filmler (hücrelerde NaN olmayanlar)
 user_movie_df.loc[user_movie_df.index == random_user, user_movie_df.columns == "Schindler's List (1993)"]
 len(movies_watched)
 
@@ -48,12 +45,12 @@ len(movies_watched)
 # Adım 3: Aynı Filmleri İzleyen Diğer Kullanıcıların Verisine ve Id'lerine Erişmek
 #############################################
 
-movies_watched_df = user_movie_df[movies_watched]
-user_movie_count = movies_watched_df.T.notnull().sum()
+movies_watched_df = user_movie_df[movies_watched] # seçtiğimiz kullanıcının izlediği filmleri tüm filmlerin tutulduğu veri setinden çektik. Yani sadece yukarıdaki random_user'ın izlediği filmler geldi
+user_movie_count = movies_watched_df.T.notnull().sum() # random_user ile en az 1 tane aynı filmi izleyen kullanıcılar. notnull ile aslında binary encode ediyoruz
 user_movie_count = user_movie_count.reset_index()
 user_movie_count.columns = ["userId", "movie_count"]
-user_movie_count[user_movie_count["movie_count"] > 20].sort_values("movie_count", ascending=False)
-user_movie_count[user_movie_count["movie_count"] == 33].count()
+user_movie_count[user_movie_count["movie_count"] > 20].sort_values("movie_count", ascending=False) # random_user ile en az aynı 20 filmi izleyen kişiler
+user_movie_count[user_movie_count["movie_count"] == 33].count() # random_user'ın izlediği filmlerden 33 tanesini izlemiş kişiler
 users_same_movies = user_movie_count[user_movie_count["movie_count"] > 20]["userId"]
 users_same_movies.head()
 users_same_movies.count()
@@ -98,7 +95,7 @@ top_users_ratings = top_users_ratings[top_users_ratings["userId"] != random_user
 #############################################
 
 # weighted_rating'in hesaplanması.
-top_users_ratings['weighted_rating'] = top_users_ratings['corr'] * top_users_ratings['rating']
+top_users_ratings['weighted_rating'] = top_users_ratings['corr'] * top_users_ratings['rating'] # ölçüm için ağırlıklandırıyoruz
 top_users_ratings.head()
 
 
