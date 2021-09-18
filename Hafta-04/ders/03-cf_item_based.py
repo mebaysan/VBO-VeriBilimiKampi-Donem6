@@ -50,7 +50,7 @@ common_movies["title"].nunique()
 
 # user movie df'inin oluşturulması.
 user_movie_df = common_movies.pivot_table(index=["userId"], columns=["title"], values="rating")
-user_movie_df.shape
+user_movie_df.shape # bu dataframe'de satırlar kullanıcıları, sütunlar filmleri temsil eder. Kesişimlerde ise verilen ratingler vardır
 user_movie_df.head(10)
 user_movie_df.columns
 len(user_movie_df.columns)
@@ -63,8 +63,8 @@ common_movies["title"].nunique()
 
 
 movie_name = "Matrix, The (1999)"
-movie_name = user_movie_df[movie_name]
-user_movie_df.corrwith(movie_name).sort_values(ascending=False).head(10)
+movie_name = user_movie_df[movie_name] # filmin ratinglerini getirdik
+user_movie_df.corrwith(movie_name).sort_values(ascending=False).head(10) # filmin ratingi ile diğer filmlerin ratinginin korelasyonuna baktık ve korelasyonu en yüksek olan 10 filmi getirdik
 
 movie_name = "Ocean's Twelve (2004)"
 movie_name = user_movie_df[movie_name]
