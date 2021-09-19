@@ -19,8 +19,8 @@ pd.set_option('display.max_columns', None)
 
 
 
-movie = pd.read_csv('datasets/movie_lens_dataset/movie.csv')
-rating = pd.read_csv('datasets/movie_lens_dataset/rating.csv')
+movie = pd.read_csv('Datasets/movie_lens_dataset/movie.csv')
+rating = pd.read_csv('Datasets/movie_lens_dataset/rating.csv')
 df = movie.merge(rating, how="left", on="movieId")
 df.head()
 
@@ -32,33 +32,40 @@ movies = ["The Dark Knight (2011)",
           "Blade Runner (1982)"]
 
 
-sample_df = df[df.movieId.isin(movie_ids)]
+sample_df = df[df.movieId.isin(movie_ids)] # gözlemleyebilmek ve hızdan tasarruf etmek için veriyi azaltıyoruz
 sample_df.shape
 sample_df.head()
 
 # user movie df'inin oluşturulması
-user_movie_df = sample_df.pivot_table(index=["userId"], columns=["title"], values="rating")
+user_movie_df = sample_df.pivot_table(index=["userId"], columns=["title"], values="rating") # Item-Based filtering de kullandığımız veri yapısını kullanıyoruz
 user_movie_df.shape
 user_movie_df.head()
 
-reader = Reader(rating_scale=(1, 5))
-data = Dataset.load_from_df(sample_df[['userId', 'movieId', 'rating']], reader)
+reader = Reader(rating_scale=(1, 5)) # skorların kaç ile kaç arasında olduğunu belirtiyoruz (rating limitleri)
+data = Dataset.load_from_df(sample_df[['userId', 'movieId', 'rating']], reader) # veriyi kütüphanenin (surprise) istediği formata sokuyoruz
 
 ##############################
 # Adım 2: Modelleme
 ##############################
 
-trainset, testset = train_test_split(data, test_size=.25)
-svd_model = SVD()
-svd_model.fit(trainset)
-predictions = svd_model.test(testset)
+trainset, testset = train_test_split(data, test_size=.25) # veriyi train ve test olarak 2'ye ayırdık. %25'i test olarak
+svd_model = SVD() # matrix factorization için bir model oluşturuyoruz
+svd_model.fit(trainset) # modeli train seti ile eğitiyoruz
+predictions = svd_model.test(testset) # modeli test verileri ile test ediyoruz
 
-accuracy.rmse(predictions)
+accuracy.rmse(predictions) # root mean squared error hesaplıyoruz. 
 
-cross_validate(svd_model, data, measures=['RMSE', 'MAE'], cv=5, verbose=True)
+cross_validate(svd_model, data, measures=['RMSE', 'MAE'], cv=5, verbose=True) 
+# RMSE -> Root Mean Squarred Error, gerçek değerler ile tahmin edilen değerlerin farklarının karelerinin ortalamasının kare köküküdür. Test setindeki başarımızdır diyebiliriz
+# MAE -> Mean Absolute Error, gerçek değerler ile tahmin edilen değerlerin farklarının mutlak değerinin ortalamasıdır
+# veri setini 5 parçaya böl, 4 parçasıyla model kur diğer 1 parçasıyla test et. Daha sonra 1 parçasıyla model kur, diğer 4 parçasıyla test et diyoruz.
 
+# user id 1 için, blade runner (541 id) tahmini
+# uid -> user id, iid -> item id
 svd_model.predict(uid=1.0, iid=541, verbose=True)
-svd_model.predict(uid=1.0, iid=356, verbose=True)
+# >>> Prediction(uid=1.0, iid=541, r_ui=None, est=4.192434293734314, details={'was_impossible': False}) ||| est parametresi tahmin edilen değeri göstermektedir. Gerçek değeri kontrol edersek ise userın 4.0 rating verdiğini göreceğiz
+
+svd_model.predict(uid=1.0, iid=356, verbose=True) # 1 id'li user'a 356 id'li filmi önerirsek beklenilen beğenmesi nedir? (est)
 
 
 ##############################
@@ -66,24 +73,26 @@ svd_model.predict(uid=1.0, iid=356, verbose=True)
 ##############################
 
 # GridSearchCV
-param_grid = {'n_epochs': [5, 10], 'lr_all': [0.002, 0.005]}
+param_grid = {'n_epochs': [5, 10], 'lr_all': [0.002, 0.005]} # hiper parametreler
+# n_epoch -> kaç defa ağırlık güncellemesi (p ve q) yapacağız
+# lr_all -> learning rate, epochlarda ağırlık setlerinin değerlerini hangi hızda değiştireceğiz
 
 gs = GridSearchCV(SVD,
-                  param_grid,
-                  measures=['rmse', 'mae'],
-                  cv=3,
-                  n_jobs=-1,
+                  param_grid, # hiper parametreler
+                  measures=['rmse', 'mae'], # hata ölçüm metrikleri
+                  cv=3, # kaç kere cross validation yapılacak
+                  n_jobs=-1, # tüm işlemcileri çalıştır
                   joblib_verbose=True)
 
 gs.fit(data)
-gs.best_score['rmse']
-gs.best_params['rmse']
+gs.best_score['rmse'] 
+gs.best_params['rmse'] # model için en iyi hiper parametre değerlerini buluyoruz
 
 
 ##############################
 # Adım 4: Final Model ve Tahmin
 ##############################
-
+# en iyi hiper parametre değerleri ile yeni bir final model kurmamız gerekiyor
 svd_model = SVD(**gs.best_params['rmse'])
 
 data = data.build_full_trainset()
