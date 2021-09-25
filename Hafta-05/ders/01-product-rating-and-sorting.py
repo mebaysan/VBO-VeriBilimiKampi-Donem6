@@ -53,12 +53,12 @@ pd.set_option('display.float_format', lambda x: '%.5f' % x)
 # Yaklaşık Sayısal Karşılıkları: 3458, 922, 184, 46, 6
 
 
-df = pd.read_csv("datasets/course_reviews.csv")
+df = pd.read_csv("datasets/course_reviews.csv") # kursların tutulduğu veri seti
 df.head()
 
-df["Rating"].value_counts()
+df["Rating"].value_counts() # hangi puandan kaç adet verilmiş
 
-df["Questions Asked"].value_counts()
+df["Questions Asked"].value_counts() # sorulan soru dağılımları
 
 
 df.groupby("Questions Asked").agg({"Questions Asked": "count",
@@ -70,23 +70,32 @@ df.head()
 # Average
 ####################
 
-df["Rating"].mean()
-
-
+df["Rating"].mean() # kursun ortalaması
+"""
+Bu bir göstergedir. Kullanılmasında sakınca yoktur. Fakat bunu hassaslaştırabiliriz.
+Ürün ile ilgilenmek bırakıldıysa vb. bir durum varsa kullanıcılara bu yansıtılmıyor olacaktır.
+Zaman'ı da işin içine katmak istersek, **Time-Based Weighted Average** kullanabiliriz. 
+"""
 
 ####################
 # Time-Based Weighted Average
 ####################
+"""
+Puan zamanlarına göre ağırlıklı ortalama hesaplayacağız.
+Analiz tarihimizden rating tarihini çıkarır istediğimiz zaman projeksiyonunda (yıl veya ay veya gün) verdiğimiz ağırlıkları hesaplarız
+"""
 
 df['Timestamp'] = pd.to_datetime(df['Timestamp'])
 
-current_date = pd.to_datetime('2021-02-10 0:0:0')
+current_date = pd.to_datetime('2021-02-10 0:0:0') # Analiz tarihi olarak bu tarihi belirliyoruz
 
-df["days"] = (current_date - df['Timestamp']).dt.days
+df["days"] = (current_date - df['Timestamp']).dt.days # Zamana ağırlıklarına göre ortalama alacağımız için, ağırlıkları hesaplarken kullanmak için tarih farkını alıyoruz
 
 df.head()
 
 
+# rating verilme tarihi 30 günden önce ise, 30 günden önce olanların ortalamasını al ve 0.28 ile çarp (%28 ağırlık verdik)
+# Burda dikkat etmemiz gereken nokta: ağırlıkların toplamı %100 olmalıdır. ÖR => %28 + %26 + %24 + %22
 df.loc[df["days"] <= 30, "Rating"].mean() * 28 / 100 + \
 df.loc[(df["days"] > 30) & (df["days"] <= 90), "Rating"].mean() * 26 / 100 + \
 df.loc[(df["days"] > 90) & (df["days"] <= 180), "Rating"].mean() * 24 / 100 + \
@@ -104,7 +113,12 @@ time_based_weighted_average(df)
 ####################
 # User-Based Weighted Average
 ####################
-
+"""
+* Peki her kullanıcının verdiği puan eşit midir?
+Bu durumda kullanıcı bazlı ağırlıklandırma yapabiliriz.
+Bu case için örnek olarak; kursun %10'unu izlemiş kişi ile %80'ini izleyen kişilerin yorumu bir olmamalı. "User Quality Score"  denir.
+"""
+# * Katılım %10 veya daha az katılanların ortalamasının %22'sini al vb.
 df.loc[df["Progress"] <= 10, "Rating"].mean() * 22 / 100 + \
 df.loc[(df["Progress"] > 10) & (df["Progress"] <= 45), "Rating"].mean() * 24 / 100 + \
 df.loc[(df["Progress"] > 45) & (df["Progress"] <= 75), "Rating"].mean() * 26 / 100 + \
@@ -123,7 +137,9 @@ user_based_weighted_average(df)
 ####################
 # Weighted Rating
 ####################
-
+"""
+User Quality Score ve Zaman Ağırlıklı skorları hesaplar ikisine de ağırlık verir (%X kadar alıp) bunları toplarsak ağırlıklı ratingi hesaplamış oluruz
+"""
 def course_weighted_rating(dataframe, time_w=50, user_w=50):
     return time_based_weighted_average(dataframe) * time_w / 100 + user_based_weighted_average(dataframe) * user_w / 100
 
@@ -146,7 +162,7 @@ df.head()
 ####################
 # Sorting by Rating
 ####################
-
+# * sadece rating parametresine göre sıralayamıyor olmamız gerekir. Bu durumda ratingi yüksek olan fakat yorum sayısı az olanlar yukarıda gözükecek. Bu sebeple social proof etkisiz kalacaktır
 df.sort_values("rating", ascending=False).head(20)
 
 ####################
@@ -160,7 +176,9 @@ df.sort_values("commment_count", ascending=False).head(20)
 ####################
 # Sorting by Rating, Comment and Purchase
 ####################
+# * En önemli social proof metriklerinden biri yorum sayısıdır.
 
+# rating 1-5 arasında olduğu için satın alma sayılarını ve yorum sayılarını 1-5 arasında standartlaştırıyoruz
 df["purchase_count_scaled"] = MinMaxScaler(feature_range=(1, 5)). \
     fit(df[["purchase_count"]]). \
     transform(df[["purchase_count"]])
@@ -171,11 +189,12 @@ df["commment_count_scaled"] = MinMaxScaler(feature_range=(1, 5)). \
 
 df.head()
 
-(df["commment_count_scaled"] * 32 / 100 +
+(df["commment_count_scaled"] * 32 / 100 + # %32 olacak şekilde ağırlıklandırdık
  df["purchase_count_scaled"] * 26 / 100 +
  df["rating"] * 42 / 100)
 
 def weighted_sorting_score(dataframe, w1=32, w2=26, w3=42):
+    # * fakat bu yöntemde yeni gelen potansiyelleri ezebilir.
     return (dataframe["commment_count_scaled"] * w1 / 100 +
             dataframe["purchase_count_scaled"] * w2 / 100 +
             dataframe["rating"] * w3 / 100)
@@ -191,6 +210,7 @@ df.sort_values("weighted_sorting_score", ascending=False).head(20)
 ####################
 # Bayesian Average Rating Score
 ####################
+# * İstatistiki olarak olasılıksal scorlama ve sıralama
 
 def bayesian_average_rating(n, confidence=0.95):
     if sum(n) == 0:
@@ -246,6 +266,7 @@ def bayesian_average_rating(n, confidence=0.95):
     return score
 
 
+# * Değişkenlerin (ratinglerin) dağılımından bize bir skor çıkarır
 df["bar_sorting_score"] = df.apply(lambda x: bayesian_average_rating(x[["1_point",
                                                                         "2_point",
                                                                         "3_point",
@@ -260,7 +281,7 @@ df.sort_values("bar_sorting_score", ascending=False).head(20)
 ####################
 # Hybrid Sorting: BAR Score + Diğer Faktorler
 ####################
-
+# * istersek hem ağırlıklı skorlama hem de bayesian skorlamayı hesaplar ve bunları ağırlıklandırır kullanırız
 
 def hybrid_sorting_score(dataframe, bar_w=60, wss_w=40):
     bar_score = dataframe.apply(lambda x: bayesian_average_rating(x[["1_point",
