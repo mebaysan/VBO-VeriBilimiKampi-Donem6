@@ -46,7 +46,7 @@ pd.set_option('display.float_format', lambda x: '%.5f' % x)
 # Sampling (Örnekleme)
 ############################
 
-populasyon = np.random.randint(0, 80, 10000)
+populasyon = np.random.randint(0, 80, 10000) # 0 ile 80 arasında sayılar
 populasyon.mean()
 
 np.random.seed(115)
@@ -92,7 +92,7 @@ df.describe().T
 df = sns.load_dataset("tips")
 df.describe().T
 
-sms.DescrStatsW(df["total_bill"]).tconfint_mean()
+sms.DescrStatsW(df["total_bill"]).tconfint_mean() # * %95 güvenilirlikle 'total_bill' değişkeninin güven aralığı => kitlenin çoğunluğu bu aralıkta hesap ödüyor
 
 sms.DescrStatsW(df["tip"]).tconfint_mean()
 
@@ -115,6 +115,90 @@ sms.DescrStatsW(df["Price"].dropna()).tconfint_mean()
 # Hypothesis Testing (Hipotez Testi)
 ############################
 
+# Tek Örneklem T Testi
+
+# Bir web analytics tool'u kullanıcılarımının web sitemde geçirdiği ortalama sürenin 170 saniye olduğunu
+# iddia ediyor.
+
+# İnanıyorum tabi ama bir test edeyim diye düşünüyorum.
+
+# H0: Web sitemizde geçirilen ortalama süre 170 saniyedir.
+# H1: ..değildir
+
+
+session_duration = pd.DataFrame(np.random.normal(175, 10, 1000), columns=["session_duration"])
+session_duration.describe().T
+
+ttest_1samp(session_duration, popmean=170)
+
+p_value = ttest_1samp(session_duration, popmean=170)[1][0]
+
+print(f"{p_value:.5f}")
+
+# p-value < ise 0.05 'ten HO RED.
+# p-value < değilse 0.05 H0 REDDEDILEMEZ.
+
+
+######################################################
+# Correlation (Korelasyon)
+######################################################
+
+# Bahşiş veri seti:
+# total_bill: yemeğin toplam fiyatı (bahşiş ve vergi dahil)
+# tip: bahşiş
+# sex: ücreti ödeyen kişinin cinsiyeti (0=male, 1=female)
+# smoker: grupta sigara içen var mı? (0=No, 1=Yes)
+# day: gün (3=Thur, 4=Fri, 5=Sat, 6=Sun)
+# time: ne zaman? (0=Day, 1=Night)
+# size: grupta kaç kişi var?
+
+
+df = sns.load_dataset('tips')
+df["total_bill"] = df["total_bill"] - df["tip"]
+
+df.plot.scatter("tip", "total_bill")
+plt.show()
+
+###########################
+# Varsayım Kontrolü
+###########################
+
+# Varsayım sağlanıyorsa pearson sağlanmıyorsa Spearman.
+
+# H0: Normal dağılım varsayımı sağlanmaktadır.
+# H1:..sağlanmamaktadır.
+
+test_stat, pvalue = shapiro(df["tip"])
+print('Test Stat = %.4f, p-value = %.4f' % (test_stat, pvalue))
+
+test_stat, pvalue = shapiro(df["total_bill"])
+print('Test Stat = %.4f, p-value = %.4f' % (test_stat, pvalue))
+
+###########################
+# Hipotez Testi
+###########################
+
+# Korelasyon Katsayısı
+# Varsayım sağlanıyorsa pearson:
+df["tip"].corr(df["total_bill"])
+
+# Varsayım sağlanmıyorsa: spearman:
+df["tip"].corr(df["total_bill"], method="spearman")
+
+# H0: Değişkenler arasında korelasyon yoktur.
+# H1: Değişkenler arasında korelasyon vardır.
+
+# Korelasyonunu Anlamlılığının Testi
+test_stat, pvalue = pearsonr(df["tip"], df["total_bill"])
+print('Korelasyon Katsayısı = %.4f, p-value = %.4f' % (test_stat, pvalue))
+
+# Nonparametrik Hipotez Testi
+test_stat, pvalue = spearmanr(df["tip"], df["total_bill"])
+print('Korelasyon Katsayısı = %.4f, p-value = %.4f' % (test_stat, pvalue))
+
+test_stat, pvalue = kendalltau(df["tip"], df["total_bill"])
+print('Korelasyon Katsayısı = %.4f, p-value = %.4f' % (test_stat, pvalue))
+
 
 ######################################################
 # AB Testing (Bağımsız İki Örneklem T Testi)
@@ -133,7 +217,7 @@ sms.DescrStatsW(df["Price"].dropna()).tconfint_mean()
 # - Normallik incelemesi öncesi aykırı değer incelemesi ve düzeltmesi yapmak faydalı olabilir.
 
 ############################
-# Uygulama 1: Sigara İçenler ile İçmeyenlerin Hesap Ortalamaları Arasında İst Ol An Fark var mı?
+# Uygulama 1: Sigara İçenler ile İçmeyenlerin Hesap Ortalamaları Arasında İstatistiksel Olarak Anlamlılık Farkı var mı?
 ############################
 
 df = sns.load_dataset("tips")
@@ -148,6 +232,8 @@ df.groupby("smoker").agg({"total_bill": "mean"})
 
 ############################
 # Normallik Varsayımı
+# * Uygulamada hipotez tesini uygulamak için öncelikle varsayımları kontrol etmemiz gerekiyor. Varayım kontrolüne de "Normallik Varsayımı" ile başlıyoruz
+# * Test sonucu elde ettiğimiz p value < 0.05 ise H0 Red
 ############################
 
 # H0: Normal dağılım varsayımı sağlanmaktadır.
