@@ -69,12 +69,15 @@ test_df = pd.read_excel('Datasets/ab_testing.xlsx', sheet_name='Test Group')
 control_df.head()
 test_df.head()
 
+# * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# * H0 HİPOTEZİ YOKLUK HİPOTEZİDİR
+# * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ########################################
 # * Uygulama 1: Kontrol ve Test grupları arasındaki görüntülenme sayıları arasında istatistiksel olarak bir anlamlılık var mıdır?
 ########################################
-# H0: Kontrol ve Test grupları arasındaki görüntülenme sayıları arasında istatistiksel olarak bir anlamlılık vardır
-# H1: Kontrol ve Test grupları arasındaki görüntülenme sayıları arasında istatistiksel olarak bir anlamlılık yoktur
+# H0: Kontrol ve Test grupları arasındaki görüntülenme sayıları arasında istatistiksel olarak bir anlamlılık yoktur
+# H1: Kontrol ve Test grupları arasındaki görüntülenme sayıları arasında istatistiksel olarak bir anlamlılık vardır
 baysan_independent_t_test(
     control_df['Impression'],
     test_df['Impression']
@@ -85,8 +88,8 @@ baysan_independent_t_test(
 ########################################
 # * Uygulama 2: Kontrol ve Test grupları arasındaki tıklama arasında istatistiksel olarak bir anlamlılık var mıdır?
 ########################################
-# H0: Kontrol ve Test grupları arasındaki tıklanma sayıları arasında istatistiksel olarak bir anlamlılık vardır
-# H1: Kontrol ve Test grupları arasındaki tıklanma sayıları arasında istatistiksel olarak bir anlamlılık yoktur
+# H0: Kontrol ve Test grupları arasındaki tıklanma sayıları arasında istatistiksel olarak bir anlamlılık yoktur
+# H1: Kontrol ve Test grupları arasındaki tıklanma sayıları arasında istatistiksel olarak bir anlamlılık vardır
 baysan_independent_t_test(
     control_df['Click'],
     test_df['Click']
@@ -97,8 +100,8 @@ baysan_independent_t_test(
 ########################################
 # * Uygulama 3: Kontrol ve Test grupları arasındaki kazançlar (earning) arasında istatistiksel olarak bir anlamlılık var mıdır?
 ########################################
-# H0: Kontrol ve Test grupları arasındaki kazançlar arasında istatistiksel olarak bir anlamlılık vardır
-# H1: Kontrol ve Test grupları arasındaki kazançlar arasında istatistiksel olarak bir anlamlılık yoktur
+# H0: Kontrol ve Test grupları arasındaki kazançlar arasında istatistiksel olarak bir anlamlılık yoktur
+# H1: Kontrol ve Test grupları arasındaki kazançlar arasında istatistiksel olarak bir anlamlılık vardır
 baysan_independent_t_test(
     control_df['Earning'],
     test_df['Earning']
@@ -108,8 +111,8 @@ baysan_independent_t_test(
 ########################################
 # * Uygulama 4: Kontrol ve Test grupları arasındaki satın alımlar arasında istatistiksel olarak bir anlamlılık var mıdır?
 ########################################
-# H0: Kontrol ve Test grupları arasındaki satın alımlar arasında istatistiksel olarak bir anlamlılık vardır
-# H1: Kontrol ve Test grupları arasındaki satın alımlar arasında istatistiksel olarak bir anlamlılık yoktur
+# H0: Kontrol ve Test grupları arasındaki satın alımlar arasında istatistiksel olarak bir anlamlılık yoktur
+# H1: Kontrol ve Test grupları arasındaki satın alımlar arasında istatistiksel olarak bir anlamlılık vardır
 baysan_independent_t_test(
     control_df['Purchase'],
     test_df['Purchase']
