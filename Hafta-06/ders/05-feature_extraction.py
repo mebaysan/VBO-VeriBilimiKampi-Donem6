@@ -94,9 +94,10 @@ df[["NEW_TITLE", "Survived", "Age"]].groupby(["NEW_TITLE"]).agg({"Survived": "me
 #############################################
 # Date Değişkenleri Üretmek
 #############################################
-
+from datetime import date
 dff = pd.read_csv("datasets/course_reviews.csv")
 dff.info()
+dff.head()
 
 # değişkeni date değişkene çevirmek
 dff['Timestamp'] = pd.to_datetime(dff["Timestamp"], format="%Y-%m-%d")

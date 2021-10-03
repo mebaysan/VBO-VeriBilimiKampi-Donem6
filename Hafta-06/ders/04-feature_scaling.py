@@ -4,6 +4,7 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 
 
@@ -45,7 +46,7 @@ df.describe().T
 # RobustScaler: Medyanı çıkar iqr'a böl.
 ###################
 
-rs = RobustScaler()
+rs = RobustScaler() # Robust: aykırılığa dayanıklıdır.
 df["Age_robuts_scaler"] = rs.fit_transform(df[["Age"]])
 df.describe().T
 
@@ -88,7 +89,7 @@ df.head()
 
 
 # qcut
-df["Age_qcut"] = pd.qcut(df['Age'], 5, labels=mylabels)
+df["Age_qcut"] = pd.qcut(df['Age'], 5)
 
 df["Age_qcut"].value_counts()
 df["age_cat"].value_counts()
