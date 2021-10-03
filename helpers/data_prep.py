@@ -90,7 +90,18 @@ def rare_encoder(dataframe, cat_cols, rare_perc):
     return temp_df
 
 
-def plot_importance(model, features, num=len(X), save=False):
+def plot_importance(model, features, num=5, save=False):
+    """Modeli etkileyen değişkenlerin etkisini görselleştirir
+
+    Parametre olarak aldığı modeli etkileyen değişkenleri görselleştirir
+    
+    Args:
+        model (model): Makine öğrenmesi modeli
+        features ([type]): features dataframe'i (X)
+        num (int, optional): Grafikte ilk kaç değişken gösterilecek. Default 5
+        save (bool, optional): Grafik lokale kaydedilecek mi? Default False
+    """
+    num = len(features)
     feature_imp = pd.DataFrame({'Value': model.feature_importances_, 'Feature': features.columns})
     plt.figure(figsize=(10, 10))
     sns.set(font_scale=1)
