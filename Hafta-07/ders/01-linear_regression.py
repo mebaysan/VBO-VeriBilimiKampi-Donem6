@@ -68,8 +68,7 @@ mae(df["y"], df["y_pred"])
 # Simple Linear Regression with OLS Using Scikit-Learn
 ######################################################
 
-
-df = pd.read_csv("datasets/Advertising.csv", index_col=0)
+df = pd.read_csv("datasets/Advertising.csv")
 df.shape
 df.head()
 
@@ -101,7 +100,6 @@ reg_model.intercept_[0] + reg_model.coef_[0][0] * 500
 # Modelin Görselleştirilmesi
 g = sns.regplot(x=X, y=y, scatter_kws={'color': 'b', 's': 9},
                 ci=False, color="r")
-
 g.set_title(f"Model Denklemi: Sales = {round(reg_model.intercept_[0], 2)} + TV*{round(reg_model.coef_[0][0], 2)}")
 g.set_ylabel("Satış Sayısı")
 g.set_xlabel("TV Harcamaları")
@@ -130,7 +128,7 @@ reg_model.score(X, y)
 # Multiple Linear Regression
 ######################################################
 
-df = pd.read_csv("datasets/Advertising.csv", index_col=0)
+df = pd.read_csv("datasets/advertising.csv")
 X = df.drop('sales', axis=1)
 y = df[["sales"]]
 
@@ -142,7 +140,8 @@ X_train, X_test, y_train, y_test = train_test_split(X,
                                                     y,
                                                     test_size=0.20, random_state=1)
 
-reg_model = LinearRegression().fit(X_train, y_train)
+reg_model = LinearRegression()
+reg_model.fit(X_train, y_train)
 
 # sabit (b - bias)
 reg_model.intercept_
@@ -160,13 +159,16 @@ reg_model.coef_
 # radio: 10
 # newspaper: 40
 
+
 # El ile:
 # Sales = 2.90  + TV * 0.04 + radio * 0.17 + newspaper * 0.002
 2.90 + 30 * 0.04 + 10 * 0.17 + 40 * 0.002
 
 # Fonksiyonel:
 yeni_veri = [[30], [10], [40]]
+
 yeni_veri = pd.DataFrame(yeni_veri).T
+
 reg_model.predict(yeni_veri)
 
 ##########################
@@ -188,29 +190,24 @@ np.sqrt(mean_squared_error(y_test, y_pred))
 reg_model.score(X_test, y_test)
 
 # 10 Katlı CV RMSE
-np.mean(np.sqrt(-cross_val_score(reg_model,
-                                 X,
-                                 y,
-                                 cv=10,
-                                 scoring="neg_mean_squared_error")))
+np.mean(np.sqrt(-cross_val_score(reg_model, X, y, cv=10, scoring="neg_mean_squared_error")))
 
 
 ######################################################
 # Simple Linear Regression with Gradient Descent from Scratch
 ######################################################
 
-
 # Cost function
 def cost_function(Y, b, w, X):
-    m = len(Y)
-    sse = 0
+    m = len(Y)  # gözlem sayısı
+    sse = 0  # toplam hata
+    # butun gozlem birimlerini gez:
     for i in range(0, m):
         y_hat = b + w * X[i]
         y = Y[i]
         sse += (y_hat - y) ** 2
     mse = sse / m
     return mse
-
 
 # update_weights
 def update_weights(Y, b, w, X, learning_rate):
@@ -220,22 +217,25 @@ def update_weights(Y, b, w, X, learning_rate):
     w_deriv_sum = 0
 
     for i in range(0, m):
+
         y_hat = b + w * X[i]
+
         y = Y[i]
 
         b_deriv_sum += (y_hat - y)
+
         w_deriv_sum += (y_hat - y) * X[i]
 
     new_b = b - (learning_rate * 1 / m * b_deriv_sum)
     new_w = w - (learning_rate * 1 / m * w_deriv_sum)
-
     return new_b, new_w
 
 
 # train fonksiyonu
 def train(Y, initial_b, initial_w, X, learning_rate, num_iters):
     print("Starting gradient descent at b = {0}, w = {1}, mse = {2}".format(initial_b, initial_w,
-                                                                            cost_function(Y, initial_b, initial_w, X)))
+                                                                   cost_function(Y, initial_b, initial_w, X)))
+
 
     b = initial_b
     w = initial_w
@@ -243,9 +243,13 @@ def train(Y, initial_b, initial_w, X, learning_rate, num_iters):
     cost_history = []
 
     for i in range(num_iters):
+
         b, w = update_weights(Y, b, w, X, learning_rate)
+
         mse = cost_function(Y, b, w, X)
+
         cost_history.append(mse)
+
 
         if i % 100 == 0:
             print("iter={:d}    b={:.2f}    w={:.4f}    mse={:.4}".format(i, b, w, mse))
@@ -254,7 +258,9 @@ def train(Y, initial_b, initial_w, X, learning_rate, num_iters):
     return cost_history, b, w
 
 
-df = pd.read_csv("/Users/mvahit/Desktop/DSMLBC4/datasets/Advertising.csv")
+df = pd.read_csv("datasets/advertising.csv")
+
+
 X = df["radio"]
 Y = df["sales"]
 
@@ -264,7 +270,4 @@ initial_b = 0.001
 initial_w = 0.001
 num_iters = 10000
 
-
-cost_history, b, w = train(Y, initial_b, initial_w, X, learning_rate, num_iters)
-
-
+train(Y, initial_b, initial_w, X, learning_rate, num_iters)
