@@ -2,6 +2,9 @@
 # Sales Prediction with Linear Regression
 ######################################################
 
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LinearRegression
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,12 +12,9 @@ import seaborn as sns
 
 pd.set_option('display.float_format', lambda x: '%.2f' % x)
 
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.model_selection import train_test_split, cross_val_score
 
 ##########################
-# Linear Regression Sürecini Anlamak
+# * Linear Regression Sürecini Anlamak
 ##########################
 
 # Rastgele b ve w oluşturmak
@@ -65,7 +65,7 @@ rmse(df["y"], df["y_pred"])
 mae(df["y"], df["y_pred"])
 
 ######################################################
-# Simple Linear Regression with OLS Using Scikit-Learn
+# * Simple Linear Regression with OLS Using Scikit-Learn
 ######################################################
 
 df = pd.read_csv("datasets/Advertising.csv")
@@ -100,7 +100,8 @@ reg_model.intercept_[0] + reg_model.coef_[0][0] * 500
 # Modelin Görselleştirilmesi
 g = sns.regplot(x=X, y=y, scatter_kws={'color': 'b', 's': 9},
                 ci=False, color="r")
-g.set_title(f"Model Denklemi: Sales = {round(reg_model.intercept_[0], 2)} + TV*{round(reg_model.coef_[0][0], 2)}")
+g.set_title(
+    f"Model Denklemi: Sales = {round(reg_model.intercept_[0], 2)} + TV*{round(reg_model.coef_[0][0], 2)}")
 g.set_ylabel("Satış Sayısı")
 g.set_xlabel("TV Harcamaları")
 plt.xlim(-10, 310)
@@ -122,10 +123,11 @@ np.sqrt(mean_squared_error(y, y_pred))
 mean_absolute_error(y, y_pred)
 
 # R-KARE
+# bağımsız değişkenlerin, bağımlı değişkendeki değişimi (varyansı) açıklama yüzdesidir
 reg_model.score(X, y)
 
 ######################################################
-# Multiple Linear Regression
+# * Multiple Linear Regression
 ######################################################
 
 df = pd.read_csv("datasets/advertising.csv")
@@ -136,6 +138,7 @@ y = df[["sales"]]
 # Model
 ##########################
 
+# veri setini eğitim ve test olarak bölüyoruz
 X_train, X_test, y_train, y_test = train_test_split(X,
                                                     y,
                                                     test_size=0.20, random_state=1)
@@ -165,66 +168,78 @@ reg_model.coef_
 2.90 + 30 * 0.04 + 10 * 0.17 + 40 * 0.002
 
 # Fonksiyonel:
+# 3 ayrı liste, yani bağımsız 3 değişkeni temsil etmekte
 yeni_veri = [[30], [10], [40]]
 
 yeni_veri = pd.DataFrame(yeni_veri).T
 
+# gelen yeni veriden (bağımsız değişkenlerden) tahmin edilen bağımlı değişken değeri (bu örnek için 'sales')
 reg_model.predict(yeni_veri)
 
 ##########################
 # Tahmin Başarısını Değerlendirme
 ##########################
 
-# Train RMSE
+# TRAIN RMSE
+# eğitim bağımlı değişkenlerini kullanarak bağımsız değişkeni tahmin ediyoruz
 y_pred = reg_model.predict(X_train)
+# eğitim bağımlı değişkenleri ile tahmin edilen bağımlı değişkenleri karşılaştırıyoruz
 np.sqrt(mean_squared_error(y_train, y_pred))
 
 # TRAIN RKARE
 reg_model.score(X_train, y_train)
 
-# Test RMSE
+# TEST RMSE
 y_pred = reg_model.predict(X_test)
 np.sqrt(mean_squared_error(y_test, y_pred))
 
-# Test RKARE
+# TEST  RKARE
 reg_model.score(X_test, y_test)
 
 # 10 Katlı CV RMSE
-np.mean(np.sqrt(-cross_val_score(reg_model, X, y, cv=10, scoring="neg_mean_squared_error")))
+np.mean( # 10 adet RMSE'nin ortalamasını aldık
+    np.sqrt( # karekökünü aldık. 10 validasyon işleminin hataları
+        -cross_val_score(reg_model, X, y, cv=10,
+                         scoring="neg_mean_squared_error") # Cross-Validation: veri setini 10 parçaya böldük. Önce 9 parça ile model kurup 1'i ile test ediyor, sonraki iterasyonda diğer 9 parça ve 1 ...
+    )
+)
 
 
 ######################################################
-# Simple Linear Regression with Gradient Descent from Scratch
+# * Simple Linear Regression with Gradient (Batch) Descent from Scratch
 ######################################################
 
 # Cost function
 def cost_function(Y, b, w, X):
     m = len(Y)  # gözlem sayısı
     sse = 0  # toplam hata
+    
     # butun gozlem birimlerini gez:
     for i in range(0, m):
-        y_hat = b + w * X[i]
-        y = Y[i]
-        sse += (y_hat - y) ** 2
-    mse = sse / m
+        y_hat = b + w * X[i] # linear regression denklemi, tahmin
+        y = Y[i] # bağımlı değişken
+        sse += (y_hat - y) ** 2 # toplam hata, y - y_hat
+    
+    mse = sse / m # MSE
     return mse
 
 # update_weights
 def update_weights(Y, b, w, X, learning_rate):
-    m = len(Y)
+    m = len(Y) # gözlem sayısı
 
+    # kısmi türevler başta 0 olarak atanıyor
     b_deriv_sum = 0
     w_deriv_sum = 0
 
-    for i in range(0, m):
+    for i in range(0, m): # tüm gözlem birimlerinde gez
 
-        y_hat = b + w * X[i]
+        y_hat = b + w * X[i] # tahmin edilen değerleri hesapla
 
-        y = Y[i]
+        y = Y[i] # bağımlı değişkeni seç
 
-        b_deriv_sum += (y_hat - y)
+        b_deriv_sum += (y_hat - y) # türevin sonucu (gradyan)
 
-        w_deriv_sum += (y_hat - y) * X[i]
+        w_deriv_sum += (y_hat - y) * X[i] # türev (y_hat - y), ilgili gözlem birimindeki bağımsız değişken ile çarpıldı
 
     new_b = b - (learning_rate * 1 / m * b_deriv_sum)
     new_w = w - (learning_rate * 1 / m * w_deriv_sum)
@@ -234,8 +249,7 @@ def update_weights(Y, b, w, X, learning_rate):
 # train fonksiyonu
 def train(Y, initial_b, initial_w, X, learning_rate, num_iters):
     print("Starting gradient descent at b = {0}, w = {1}, mse = {2}".format(initial_b, initial_w,
-                                                                   cost_function(Y, initial_b, initial_w, X)))
-
+                                                                            cost_function(Y, initial_b, initial_w, X)))
 
     b = initial_b
     w = initial_w
@@ -250,11 +264,12 @@ def train(Y, initial_b, initial_w, X, learning_rate, num_iters):
 
         cost_history.append(mse)
 
-
         if i % 100 == 0:
-            print("iter={:d}    b={:.2f}    w={:.4f}    mse={:.4}".format(i, b, w, mse))
+            print("iter={:d}    b={:.2f}    w={:.4f}    mse={:.4}".format(
+                i, b, w, mse))
 
-    print("After {0} iterations b = {1}, w = {2}, mse = {3}".format(num_iters, b, w, cost_function(Y, b, w, X)))
+    print("After {0} iterations b = {1}, w = {2}, mse = {3}".format(
+        num_iters, b, w, cost_function(Y, b, w, X)))
     return cost_history, b, w
 
 

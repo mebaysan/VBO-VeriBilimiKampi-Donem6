@@ -19,37 +19,17 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score, confusion_matrix, classification_report, plot_roc_curve
 from sklearn.model_selection import train_test_split, cross_validate
-
-def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
-    quartile1 = dataframe[col_name].quantile(q1)
-    quartile3 = dataframe[col_name].quantile(q3)
-    interquantile_range = quartile3 - quartile1
-    up_limit = quartile3 + 1.5 * interquantile_range
-    low_limit = quartile1 - 1.5 * interquantile_range
-    return low_limit, up_limit
-
-def check_outlier(dataframe, col_name):
-    low_limit, up_limit = outlier_thresholds(dataframe, col_name)
-    if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
-        return True
-    else:
-        return False
-
-def replace_with_thresholds(dataframe, variable):
-    low_limit, up_limit = outlier_thresholds(dataframe, variable)
-    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
-    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
-
-
+from helpers.data_prep import outlier_thresholds, check_outlier, replace_with_thresholds
+from helpers.eda import target_summary_with_num
 
 ######################################################
-# Exploratory Data Analysis
+# * Exploratory Data Analysis
 ######################################################
 
 df = pd.read_csv("datasets/diabetes.csv")
 
 ##########################
-# Target'ın Analizi
+# * Target'ın Analizi
 ##########################
 
 # Tüm sayısal değişkenlerin özet istatistikleri:
@@ -67,7 +47,7 @@ plt.show()
 
 
 ##########################
-# Feature'ların Analizi
+# * Feature'ların Analizi
 ##########################
 
 df["BloodPressure"].hist(bins=20)
@@ -91,21 +71,17 @@ for col in cols:
     plot_numerical_col(df, col)
 
 ##########################
-# Target vs Features
+# * Target vs Features
 ##########################
 
 df.groupby("Outcome").agg({"Pregnancies": "mean"})
-
-def target_summary_with_num(dataframe, target, numerical_col):
-    print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
-
 
 for col in cols:
     target_summary_with_num(df, "Outcome", col)
 
 
 ######################################################
-# Data Preprocessing (Veri Ön İşleme)
+# * Data Preprocessing (Veri Ön İşleme)
 ######################################################
 
 
@@ -121,13 +97,13 @@ for col in cols:
 replace_with_thresholds(df, "Insulin")
 
 for col in cols:
-    df[col] = RobustScaler().fit_transform(df[[col]])
+    df[col] = RobustScaler().fit_transform(df[[col]]) # doğrusal ve uzaklık ile gradient descent temelli modellerde scale etmek çok önemlidir.
 
 df.head()
 
 
 ######################################################
-# Model & Prediction
+# * Model & Prediction
 ######################################################
 
 # Bağımlı ve bağımsız değişkelerin seçilmesi:
@@ -150,7 +126,7 @@ y[0:10]
 
 
 ######################################################
-# Model Evaluation
+# * Model Evaluation
 ######################################################
 
 
@@ -179,7 +155,7 @@ roc_auc_score(y, y_prob)
 
 
 ######################################################
-# Model Validation: Holdout
+# * Model Validation: Holdout
 ######################################################
 
 
@@ -216,7 +192,7 @@ roc_auc_score(y_test, y_prob)
 
 
 ######################################################
-# Model Validation: 10-Fold Cross Validation
+# * Model Validation: 10-Fold Cross Validation
 ######################################################
 
 y = df["Outcome"]
@@ -249,7 +225,7 @@ cv_results['test_roc_auc'].mean()
 
 
 ######################################################
-# Prediction for A New Observation
+# * Prediction for A New Observation
 #####################################################
 
 X.columns
