@@ -6,6 +6,17 @@ from sklearn.preprocessing import LabelEncoder
 
 
 def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
+    """Returns outlier threshold limits: min and max
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        col_name (str): The column name for creating threshold values
+        q1 (float, optional): Q1 value for setting the minimum threshold. Defaults to 0.25.
+        q3 (float, optional): Q3 value for setting the maximum thresold. Defaults to 0.75.
+
+    Returns:
+        int, int: min threshold and max threshold
+    """
     quartile1 = dataframe[col_name].quantile(q1)
     quartile3 = dataframe[col_name].quantile(q3)
     interquantile_range = quartile3 - quartile1
@@ -14,6 +25,16 @@ def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
     return low_limit, up_limit
 
 def grab_outliers(dataframe, col_name, index=False):
+    """Prints the outlier observations
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        col_name (str): The column name for seacrhing outlier values
+        index (bool, optional): If it's true, returns the indices of outliers. Defaults to False.
+
+    Returns:
+        list: array of outliers' indices
+    """
     low, up = outlier_thresholds(dataframe, col_name)
     if dataframe[((dataframe[col_name] < low) | (dataframe[col_name] > up))].shape[0] > 10:
         print(dataframe[((dataframe[col_name] < low) | (dataframe[col_name] > up))].head())
@@ -25,6 +46,15 @@ def grab_outliers(dataframe, col_name, index=False):
         return outlier_index
 
 def check_outlier(dataframe, col_name):
+    """Is there any outlier in the column
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        col_name (str): The column name for checking the outliers
+
+    Returns:
+        bool: Returns True if there is outlier in the column name else False
+    """
     low_limit, up_limit = outlier_thresholds(dataframe, col_name)
     if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
         return True
@@ -32,16 +62,40 @@ def check_outlier(dataframe, col_name):
         return False
 
 def replace_with_thresholds(dataframe, variable):
+    """Replace outliers by thresholds
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        variable (str): The column name for applying the thresold process
+    """
     low_limit, up_limit = outlier_thresholds(dataframe, variable)
     dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
     dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
 
 def remove_outlier(dataframe, col_name):
+    """Remove the outlier observations
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        col_name (str): The column name for removing the outliers
+
+    Returns:
+        pd.DataFrame: The dataframe which removed the outliers
+    """
     low_limit, up_limit = outlier_thresholds(dataframe, col_name)
     df_without_outliers = dataframe[~((dataframe[col_name] < low_limit) | (dataframe[col_name] > up_limit))]
     return df_without_outliers
 
 def missing_values_table(dataframe, na_name=False):
+    """Shows the missing value counts and ratios of columns
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        na_name (bool, optional): If it's true, it returns the column name of missing values. Defaults to False.
+
+    Returns:
+        list: Missing value column names
+    """
     na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
     n_miss = dataframe[na_columns].isnull().sum().sort_values(ascending=False)
     ratio = (dataframe[na_columns].isnull().sum() / dataframe.shape[0] * 100).sort_values(ascending=False)
@@ -51,6 +105,13 @@ def missing_values_table(dataframe, na_name=False):
         return na_columns
 
 def missing_vs_target(dataframe, target, na_columns):
+    """It prints a summary of between target column and na columns
+
+    Args:
+        dataframe (pd.DataFrame): A dataframe
+        target (str): The target variable column name
+        na_columns (list): Column names of missing values
+    """
     temp_df = dataframe.copy()
     for col in na_columns:
         temp_df[col + '_NA_FLAG'] = np.where(temp_df[col].isnull(), 1, 0)
@@ -69,6 +130,13 @@ def one_hot_encoder(dataframe, categorical_cols, drop_first=False):
     return dataframe
 
 def rare_analyser(dataframe, target, cat_cols):
+    """Kategorik değişkenlerdeki rare olma durumunu verir
+
+    Args:
+        dataframe (pd.DataFraöe): Dataframe
+        target (str): Hedef değişken ismi
+        cat_cols (list): Kategorik değişken isimlerinin bulunduğu liste
+    """
     for col in cat_cols:
         print(col, ":", len(dataframe[col].value_counts()))
         print(pd.DataFrame({"COUNT": dataframe[col].value_counts(),
@@ -76,9 +144,20 @@ def rare_analyser(dataframe, target, cat_cols):
                             "TARGET_MEAN": dataframe.groupby(col)[target].mean()}), end="\n\n\n")
 
 def rare_encoder(dataframe, cat_cols, rare_perc):
-    # 1'den fazla rare varsa düzeltme yap. durumu göz önünde bulunduruldu.
-    # rare sınıf sorgusu 0.01'e göre yapıldıktan sonra gelen true'ların sum'ı alınıyor.
-    # eğer 1'den büyük ise rare cols listesine alınıyor.
+    """
+    1'den fazla rare varsa düzeltme yap. durumu göz önünde bulunduruldu.
+    rare sınıf sorgusu 0.01'e göre yapıldıktan sonra gelen true'ların sum'ı alınıyor.
+    eğer 1'den büyük ise rare cols listesine alınıyor.
+
+    Args:
+        dataframe (pd.DataFrame): Dataframe
+        cat_cols (list): Kategorik değişkenlerin isimlerinin bulunduğu liste
+        rare_perc (float): Yüzde kaç oranının altı RARE olarak etiketlensin
+
+    Returns:
+        pd.DataFrame: rare_perc altında kalan sınıf oranları RARE olarak etiketlenmiş veri seti
+    """
+    
     temp_df = dataframe.copy()
     rare_columns = [col for col in cat_cols if (temp_df[col].value_counts() / len(temp_df) < 0.01).sum() > 1]
 
