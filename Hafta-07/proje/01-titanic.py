@@ -1,14 +1,12 @@
 import pandas as pd
-import numpy as np
-from scipy.sparse import data
-from scipy.sparse.construct import random
+from scipy.sparse.construct import rand
 from helpers import eda, data_prep
 from sklearn.preprocessing import RobustScaler
 # Missing Values Imputation için
 from sklearn.impute import KNNImputer
 # titanic veri setinde bağımlı değişkenimiz (hedef) kategorik olduğundan dolayı LogisticRegression kullanacağız
 from sklearn.linear_model import LogisticRegression 
-from sklearn.metrics import accuracy_score, roc_auc_score, confusion_matrix, classification_report, plot_roc_curve
+from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split, cross_validate
 
 ######################################################
@@ -63,11 +61,17 @@ for col in num_cols:
 # * Logistic Regression
 #####################################################
 df.head()
+scaler = RobustScaler()
 
 encoded_df = pd.get_dummies(df,drop_first=True)
 
+encoded_df = pd.DataFrame(scaler.fit_transform(encoded_df),columns=encoded_df.columns)
+
+X = encoded_df.drop('Survived',axis=1)
+y = encoded_df['Survived']
+
 # * Yöntem 1: Cross-Validation
-log_model = LogisticRegression(solver='lbfgs', max_iter=1000).fit(X,y)
+log_model = LogisticRegression().fit(X,y)
 
 cv_results = cross_validate(log_model,
                             X, y,
@@ -92,9 +96,6 @@ cv_results['test_roc_auc'].mean()
 
 
 # * Yöntem 2: Hold-Out
-X = encoded_df.drop('Survived',axis=1)
-y = encoded_df['Survived']
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.80, test_size=0.20, random_state=1)
 
 log_model = LogisticRegression(solver='lbfgs', max_iter=10000).fit(X_train,y_train)
@@ -107,7 +108,6 @@ print(classification_report(y_test,y_pred))
 random_person = encoded_df.sample(1, random_state=1).drop('Survived',axis=1)
 random_person
 log_model.predict(random_person) 
-
 
 
 
