@@ -97,7 +97,7 @@ for col in cols:
 replace_with_thresholds(df, "Insulin")
 
 for col in cols:
-    df[col] = RobustScaler().fit_transform(df[[col]]) # doğrusal ve uzaklık ile gradient descent temelli modellerde scale etmek çok önemlidir.
+    df[col] = RobustScaler().fit_transform(df[[col]]) # ** doğrusal ve uzaklık ile gradient descent temelli modellerde scale etmek çok önemlidir.
 
 df.head()
 
