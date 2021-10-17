@@ -22,10 +22,11 @@ X = df.drop(["Outcome"], axis=1)
 
 xgboost_model = XGBClassifier(random_state=17)
 
-xgboost_params = {"learning_rate": [0.1, 0.01, 0.001],
+xgboost_params = {"learning_rate": [0.1, 0.01, 0.001], # büyüme şiddeti
                   "max_depth": [5, 8, 12, 15, 20],
-                  "n_estimators": [100, 500, 1000],
-                  "colsample_bytree": [0.5, 0.7, 1]}
+                  "n_estimators": [100, 500, 1000], # ağaç sayısı, iterasyon sayısı..
+                  "colsample_bytree": [0.5, 0.7, 1] # yüzdelik olarak kaç gözlem bulunsun
+                  }
 
 xgboost_best_grid = GridSearchCV(xgboost_model,
                                  xgboost_params,

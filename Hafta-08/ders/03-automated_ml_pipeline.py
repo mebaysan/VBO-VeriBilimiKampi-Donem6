@@ -110,7 +110,7 @@ X = df_prep.drop(["PASSENGERID", "SURVIVED"], axis=1)
 ######################################################
 # Modeling
 ######################################################
-
+# * Bu modellerin hepsini denemek için bir sürü classifier oluşturuyorum
 classifiers = [('LR', LogisticRegression()),
                ('KNN', KNeighborsClassifier()),
                ("SVC", SVC()),
@@ -120,10 +120,10 @@ classifiers = [('LR', LogisticRegression()),
                ('GBM', GradientBoostingClassifier()),
                ('XGBoost', XGBClassifier()),
                ('LightGBM', LGBMClassifier()),
-               # ('CatBoost', CatBoostClassifier(verbose=False))
+               ('CatBoost', CatBoostClassifier(verbose=False))
                ]
 
-
+# * Oluşturduğum tüm base modeller içerisinde geziyorum (hiperparametre optimizasyonu yapılmadı)
 for name, classifier in classifiers:
     cv_results = cross_validate(classifier, X, y, cv=3, scoring=["roc_auc"])
     print(f"AUC: {round(cv_results['test_roc_auc'].mean(),4)} ({name}) ")
@@ -134,7 +134,7 @@ for name, classifier in classifiers:
 # Automated Hyperparameter Optimization
 ######################################################
 
-
+# * Modeller için hiperparametreleri belirliyorum 
 knn_params = {"n_neighbors": range(2, 50)}
 
 cart_params = {'max_depth': range(1, 20),
@@ -154,7 +154,7 @@ lightgbm_params = {"learning_rate": [0.01, 0.1],
                    "n_estimators": [300, 500, 1500],
                    "colsample_bytree": [0.5, 0.7, 1]}
 
-
+# * Base modelleri zaten yukarıdaki for döngüsünde denemiştik. Aralarından en iyi performans gösterenleri seçip hiperparametreleri optimize etmek üzere yeni bir liste oluşturuyorum
 classifiers = [('KNN', KNeighborsClassifier(), knn_params),
                ("CART", DecisionTreeClassifier(), cart_params),
                ("RF", RandomForestClassifier(), rf_params),
@@ -164,16 +164,18 @@ classifiers = [('KNN', KNeighborsClassifier(), knn_params),
 
 best_models = {}
 
-
+# * Her base modeli döneceğiz ve hiperparametre optimizasyonu öncesi roc_auc skoru ile optimizasyon sonrası roc_auc skoru gözlemleyeceğiz
 for name, classifier, params in classifiers:
+    # * optimizasyon öncesi base model roc_auc skoru
     print(f"########## {name} ##########")
     cv_results = cross_validate(classifier, X, y, cv=3, scoring=["roc_auc"])
     print(f"AUC (Before): {round(cv_results['test_roc_auc'].mean(),4)}")
 
-
+    # * hiper parametre optimizasyonu ve final model oluşturma
     gs_best = GridSearchCV(classifier, params, cv=3, n_jobs=-1, verbose=False).fit(X, y)
     final_model = classifier.set_params(**gs_best.best_params_)
-
+    
+    # * optimizasyon sonrası final model roc_auc skoru
     cv_results = cross_validate(final_model, X, y, cv=3, scoring=["roc_auc"])
     print(f"AUC (After): {round(cv_results['test_roc_auc'].mean(), 4)}")
     print(f"{name} best params: {gs_best.best_params_}", end="\n\n")
@@ -184,12 +186,16 @@ for name, classifier, params in classifiers:
 ######################################################
 # Stacking & Ensemble Learning
 ######################################################
-
+# * ensemble learning deyince aklımıza gelmesi gereken topluluk (kollektif) öğrenme yöntemleri.
+# * VotingClassifier metodu ile istediğimiz kadar sınıflandırıcıyı birleştirerek tek bir sınıflandırıcı yapıyoruz. Buradaki temel varsayımımız her bir sınıflandırıcı kendisine göre belirli bir artısı var
 voting_clf = VotingClassifier(
     estimators=[('XGBoost', best_models["XGBoost"]),
                 ('RF', best_models["RF"]),
                 ('LightGBM', best_models["LightGBM"])],
-    voting='soft')
+    voting='soft' # * voting kavramı:
+                    # * - hard voting: mesela 3 sınıflandırıcımız var 2'si bu 1 sınıfıdır, diğeri ise bu 0 sınıfıdır dedi. O zaman bu gözlem 1 sınıfıdır (çoğunluk baskın)
+                    # * - sof voting:  Gözlem biriminin X sınıfına ait olma olasılığına göre sınıflandırma yapar
+    )
 
 voting_clf.fit(X, y)
 

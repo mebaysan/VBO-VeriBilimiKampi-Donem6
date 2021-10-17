@@ -64,6 +64,7 @@ models = [('LR', LinearRegression()),
           ]
 
 for name, regressor in models:
+    # * bu problemde maaş tahmini yaptığımız için hata metriğimiz mean squarred error oldu
     rmse = np.mean(np.sqrt(-cross_val_score(regressor, X, y, cv=10, scoring="neg_mean_squared_error")))
     print(f"RMSE: {round(rmse, 4)} ({name}) ")
 

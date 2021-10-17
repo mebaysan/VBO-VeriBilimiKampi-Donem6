@@ -1,6 +1,12 @@
 ################################################
 # Hyperparameter Optimization with RandomSearchCV (BONUS)
 ################################################
+"""
+RandomSearchCV: hiperparametre komninasyonlarından rastgele N adedini seçer ve dener. Daha geniş bir aralık verebiliriz. 
+                GridSearchCV'de tüm kombinasyonları denedğinden, fazla hiperparametre kombinasyonu fazla işlem maliyetini beraberinde getirecektir
+
+                Uygulanabilecek senaryo: RandomizedSearchCV sonucunda elde ettiğimiz N adet rastgele kombinasyonu GridSearchCV'e verebiliriz.
+"""
 
 import warnings
 import numpy as np

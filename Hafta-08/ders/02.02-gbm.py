@@ -20,10 +20,11 @@ X = df.drop(["Outcome"], axis=1)
 
 gbm_model = GradientBoostingClassifier(random_state=17)
 
-gbm_params = {"learning_rate": [0.01, 0.1],
+gbm_params = {"learning_rate": [0.01, 0.1], # DeltaN eklemesindeki büyüme şiddeti
               "max_depth": [3, 8],
-              "n_estimators": [500, 1000],
-              "subsample": [1, 0.5, 0.7]}
+              "n_estimators": [500, 1000], # iterasyon sayısına karşılık gelir burada, kaç iterasyon yapayım'ı ifade etmektedir. Ağaçlar burada birbirine bağlıdır
+              "subsample": [1, 0.5, 0.7] # her iterasyonda gözlem birimlerinin % kaçını kullanayım'ı ifade ediyor
+              }
 
 gbm_best_grid = GridSearchCV(gbm_model,
                              gbm_params,

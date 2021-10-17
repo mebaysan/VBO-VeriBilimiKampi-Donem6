@@ -24,7 +24,8 @@ catboost_model = CatBoostClassifier(random_state=17, verbose=False)
 
 catboost_params = {"iterations": [200, 500],
                    "learning_rate": [0.01, 0.1],
-                   "depth": [3, 6]}
+                   "depth": [3, 6] # max ağaç derinliği
+                   }
 
 catboost_best_grid = GridSearchCV(catboost_model,
                                   catboost_params,
