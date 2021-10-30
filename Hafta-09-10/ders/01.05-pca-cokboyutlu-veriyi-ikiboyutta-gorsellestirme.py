@@ -5,18 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-
-################################
-# * Breast Cancer
-################################
-
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 500)
+import seaborn as sns
 import random
-df = pd.read_csv("datasets/breast_cancer.csv")
-df.isnull().sum()
-y = df["diagnosis"]
-X = df.drop(["diagnosis", "id", "Unnamed: 32"], axis=1)
 
 
 def create_pca_df(X, y):
@@ -26,8 +16,6 @@ def create_pca_df(X, y):
     pca_df = pd.DataFrame(data=pca_fit, columns=['PC1', 'PC2'])
     final_df = pd.concat([pca_df, pd.DataFrame(y)], axis=1)
     return final_df
-
-pca_df = create_pca_df(X, y)
 
 def plot_pca(dataframe, target):
     fig = plt.figure(figsize=(7, 5))
@@ -47,14 +35,12 @@ def plot_pca(dataframe, target):
     plt.show()
 
 
-plot_pca(pca_df, "diagnosis")
 
 
 ################################
 # * Iris
 ################################
 
-import seaborn as sns
 df = sns.load_dataset("iris")
 
 y = df["species"]

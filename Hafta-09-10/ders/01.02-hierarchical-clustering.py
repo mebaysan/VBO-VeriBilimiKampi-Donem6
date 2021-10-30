@@ -2,7 +2,6 @@
 # * Hierarchical Clustering
 ################################
 
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -51,7 +50,7 @@ plt.show()
 ################################
 
 
-cluster = AgglomerativeClustering(n_clusters=5)
+cluster = AgglomerativeClustering(n_clusters=5) # dendogram yönteminden görsel olarak nerden böleceğime karar verdim.
 cluster.fit_predict(df)
 
 df = pd.read_csv("datasets/USArrests.csv", index_col=0)
