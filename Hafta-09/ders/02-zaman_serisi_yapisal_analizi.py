@@ -16,11 +16,11 @@ warnings.filterwarnings('ignore')
 # Atmospheric CO2 from Continuous Air Samples at Mauna Loa Observatory, Hawaii, U.S.A.
 # Period of Record: March 1958 - December 2001
 
-data = sm.datasets.co2.load_pandas()
+data = sm.datasets.co2.load_pandas() # statsmodel altındaki veri setini çekiyoruz. 1958 ile 2001 arasındaki CO2 ölçümlerini içeren bir veri setidir.
 y = data.data
 y.index.sort_values()
 
-y = y['co2'].resample('MS').mean()
+y = y['co2'].resample('MS').mean() # haftalık olan veri setini "aylık" periyota çeviriyorum. Her unique ay için ilgili haftaların ortalamasını alıp atıyoruz
 
 y.head()
 
@@ -28,7 +28,7 @@ y.shape
 
 y.isnull().sum()
 
-y = y.fillna(y.bfill())
+y = y.fillna(y.bfill()) # bir sonraki gözlemin değeri ile eksik gözlemi doldur
 y.head()
 
 y.plot(figsize=(15, 6))
@@ -38,6 +38,7 @@ plt.show()
 ############################
 # * Holdout
 ############################
+# veriyi train ve test olarak 2'ye ayıracağım
 
 # 1958'den 1997'sonuna kadar train set.
 train = y[:'1997-12-01']

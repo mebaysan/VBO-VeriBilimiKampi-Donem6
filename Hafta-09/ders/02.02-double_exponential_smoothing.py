@@ -55,7 +55,6 @@ len(test)  # 48 ay
 ##################################################
 
 # DES: Level (SES) + Trend
-
 # Level'a ek olarak Trendi yakalayabiliyor.
 
 def plot_co2(train, test, y_pred, title):
@@ -64,6 +63,17 @@ def plot_co2(train, test, y_pred, title):
     test.plot(legend=True, label="TEST", figsize=(6, 4))
     y_pred.plot(legend=True, label="PREDICTION")
     plt.show()
+
+
+
+# y(t) = Level + Trend + Seasonality + Noise -> DES için Toplamsal trend (trend = 'add')
+# y(t) = Level * Trend * Seasonality * Noise -> DES için Çarpımsal trend (trend = 'mul')
+# Mevsimsellik ve artık bileşenleri trendden bağımsız ise toplamsal bir seri
+# Mevsimsellik ve artık bileşenleri trende bağımlıysa yani trende göre şekilleniyorsa çarpımsal bir seri.
+# ######################
+# Peki serinin çarpımsal mı toplamsal mı olduğuna nasıl karar veririm?
+# - Serinin bileşenlerini inceleyerek bu durumu gözlemleyebilirim
+# - En düşük hatayı hangisi veriyorsa o dur. İşe makine öğrenmesi tarafından baktığımız için model hatası rmse veya mae hangisi düşük veriyorsa onunla kurmayı düşünebilirim.
 
 
 des_model = ExponentialSmoothing(train, trend="add").fit(smoothing_level=0.5,
@@ -81,15 +91,28 @@ des_model.params
 ############################
 
 
-def des_optimizer(train, alphas, betas, step=48):
+def des_optimizer(train, test, alphas, betas, step=48, trend_mode='add'):
+    """DES modeli için aldığı alpha ve beta listelerinin hepsini deneyerek minimum hatayı veren en iyi hiperparametreleri verir
+
+    Args:
+        train (pd.Series): train seti
+        test (pd.Series): test seti
+        alphas (list): denenecek alfa değerleri (level)
+        betas (list): denenecek beta değerleri (trend)
+        step (int, optional): Kaç adım sonrası için forecast yapılacak (test setindeki ile eşit olmalı). Defaults to 48.
+        trend_mode (str, optional): Trend'i eklemeli veya çarpımsal olarak hesaplar. Parametreler = ['add', 'mul']. Defaults to 'add'.
+
+    Returns:
+        [float, float, float]: best_alpha, best_beta, best_mae
+    """
     best_alpha, best_beta, best_mae = None, None, float("inf")
-    for alpha in alphas:
-        for beta in betas:
-            des_model = ExponentialSmoothing(train, trend="add").fit(smoothing_level=alpha,
-                                                                     smoothing_slope=beta)
-            y_pred = des_model.forecast(step)
-            mae = mean_absolute_error(test, y_pred)
-            if mae < best_mae:
+    for alpha in alphas: # her bir alfa değeri
+        for beta in betas: # her alfa gezdiğinde bütün betaları gez
+            des_model = ExponentialSmoothing(train, trend=trend_mode).fit(smoothing_level=alpha,
+                                                                     smoothing_slope=beta) # eğitim veri seti ile bir DES model kuruyorum. Döngüdeki alfa ve beta değerleri ile.
+            y_pred = des_model.forecast(step) # step adım kadar sonrası için forecast yapıyorum.
+            mae = mean_absolute_error(test, y_pred) # mae hesaplanıyor.
+            if mae < best_mae: # en iyi mae'yi veren alpha ve beta değerleri işaretleniyor
                 best_alpha, best_beta, best_mae = alpha, beta, mae
             print("alpha:", round(alpha, 2), "beta:", round(beta, 2), "mae:", round(mae, 4))
     print("best_alpha:", round(best_alpha, 2), "best_beta:", round(best_beta, 2), "best_mae:", round(best_mae, 4))
@@ -99,7 +122,7 @@ def des_optimizer(train, alphas, betas, step=48):
 alphas = np.arange(0.01, 1, 0.10)
 betas = np.arange(0.01, 1, 0.10)
 
-best_alpha, best_beta, best_mae = des_optimizer(train, alphas, betas)
+best_alpha, best_beta, best_mae = des_optimizer(train, test, alphas, betas)
 
 
 ############################
@@ -107,7 +130,7 @@ best_alpha, best_beta, best_mae = des_optimizer(train, alphas, betas)
 ############################
 
 final_des_model = ExponentialSmoothing(train, trend="add").fit(smoothing_level=best_alpha,
-                                                               smoothing_slope=best_beta)
+                                                               smoothing_slope=best_beta) # yukarıdaki fonksiyondan elde ettiğim en iyi hiperparametreler ile yeni bir final model kuruyorum
 
 y_pred = final_des_model.forecast(48)
 

@@ -54,6 +54,7 @@ len(test)  # 48 ay
 # * Triple Exponentıal Smoothing (Holt-Winters)
 ##################################################
 # TES = SES + DES + Mevsimsellik
+# TES modeli durağanlık testi vs bakmadan kullanabiliriz. Bu metod leveli, trendi, mevsimselliği yakalayabilir.
 
 def plot_co2(train, test, y_pred, title):
     mae = mean_absolute_error(test, y_pred)
@@ -64,11 +65,13 @@ def plot_co2(train, test, y_pred, title):
 
 
 tes_model = ExponentialSmoothing(train,
-                                 trend="add",
-                                 seasonal="add",
-                                 seasonal_periods=12).fit(smoothing_level=0.5,
-                                                          smoothing_slope=0.5,
-                                                          smoothing_seasonal=0.5)
+                                 trend="add", # add || mul
+                                 seasonal="add", # add || mul
+                                 seasonal_periods=12 # 1 yılda (12, 12 step, 12 adım) 1 mevsimsel periyot tanımlanıyor dedik
+                                 ).fit(smoothing_level=0.5, # alpha
+                                        smoothing_slope=0.5, # beta
+                                        smoothing_seasonal=0.5 # gamma
+                                        )
 
 
 y_pred = tes_model.forecast(48)
@@ -80,18 +83,29 @@ plot_co2(train, test, y_pred, "Triple Exponential Smoothing")
 # * Hyperparameter Optimization
 ############################
 
+def tes_optimizer(train, test, abg, trend_mode='add', seasonal_mode = 'add', seasonal_period=12,step=48):
+    """TES modeli için hiperparametreleri optimize eden fonksiyon
 
+    Args:
+        train (pd.Series): train veri seti
+        test (pd.Series): test veri seti
+        abg (list): alpha, beta, gamma değerlerini aynı tuple içerisinde tutan tuple'lardan oluşan liste
+        trend_mode (str, optional): 'add' || 'mul' . Trend eklemeli mi yoksa çarpmalı mı. Defaults to 'add'.
+        seasonal_mode (str, optional): 'add' || 'mul' . Mevsimsellik eklemeli mi yoksa çarpmalı mı. Defaults to 'add'.
+        seasonal_period (int, optional): Bir mevsimsel periyodu belirleyen adım sayısı. Defaults to 12.
+        step (int, optional): Train seti ile oluşturulan model kaç adım sonrasını forecast edecek. Defaults to 48.
 
-
-def tes_optimizer(train, abg, step=48):
+    Returns:
+        [float, float, float, float]: best_alpha, best_beta, best_gamma, best_mae
+    """
     best_alpha, best_beta, best_gamma, best_mae = None, None, None, float("inf")
 
-    for comb in abg:
-        tes_model = ExponentialSmoothing(train, trend="add", seasonal="add", seasonal_periods=12).\
-            fit(smoothing_level=comb[0], smoothing_slope=comb[1], smoothing_seasonal=comb[2])
-        y_pred = tes_model.forecast(step)
-        mae = mean_absolute_error(test, y_pred)
-        if mae < best_mae:
+    for comb in abg: # her kombinasyonu gez
+        tes_model = ExponentialSmoothing(train, trend=trend_mode, seasonal=seasonal_mode, seasonal_periods=seasonal_period).\
+            fit(smoothing_level=comb[0], smoothing_slope=comb[1], smoothing_seasonal=comb[2]) # 0: alpha, 1: beta, 2: gamma. Her kombinasyondan gelen değerler ile bir TES model oluştur
+        y_pred = tes_model.forecast(step) # oluşturduğun model ile step adım kadar sonrasını forecast et
+        mae = mean_absolute_error(test, y_pred) # mae hesapla
+        if mae < best_mae: # en iyi parametreleri işaretle
             best_alpha, best_beta, best_gamma, best_mae = comb[0], comb[1], comb[2], mae
         print([round(comb[0], 2), round(comb[1], 2), round(comb[2], 2), round(mae, 2)])
 
@@ -102,10 +116,10 @@ def tes_optimizer(train, abg, step=48):
 
 
 alphas = betas = gammas = np.arange(0.10, 1, 0.20)
-abg = list(itertools.product(alphas, betas, gammas))
+abg = list(itertools.product(alphas, betas, gammas)) # 3 listeninde kombinasyonlarını oluştur
 
 
-best_alpha, best_beta, best_gamma, best_mae = tes_optimizer(train, abg)
+best_alpha, best_beta, best_gamma, best_mae = tes_optimizer(train,test, abg)
 
 
 ############################
@@ -113,7 +127,7 @@ best_alpha, best_beta, best_gamma, best_mae = tes_optimizer(train, abg)
 ############################
 
 final_tes_model = ExponentialSmoothing(train, trend="add", seasonal="add", seasonal_periods=12).\
-            fit(smoothing_level=best_alpha, smoothing_slope=best_beta, smoothing_seasonal=best_gamma)
+            fit(smoothing_level=best_alpha, smoothing_slope=best_beta, smoothing_seasonal=best_gamma) # yukarıdaki fonksiyondan gelen en iyi hiperparametreler ile model kur
 
 y_pred = final_tes_model.forecast(48)
 

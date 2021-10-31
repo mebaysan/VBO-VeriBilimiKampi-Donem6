@@ -59,7 +59,7 @@ len(test)  # 48 ay
 
 ses_model = SimpleExpSmoothing(train).fit(smoothing_level=0.5)
 
-y_pred = ses_model.forecast(48)
+y_pred = ses_model.forecast(48) # 48 adımlık (ay) ileriye tahmin yaptık. 48 yapmamızın sebebi test değişkeninin train'den sonraki 48 ayı içeriyor olması.
 
 mean_absolute_error(test, y_pred)
 
@@ -85,20 +85,33 @@ def plot_co2(train, test, y_pred, title):
 
 plot_co2(train, test, y_pred, "Single Exponential Smoothing")
 
+ses_model.params # modelin parametreleri
+
 ############################
 # * Hyperparameter Optimization
 ############################
+# SES'te bir hiperparametremiz vardı. Alfa değeri. Bu değer "geçmiş tahmin edilen değerlere" mi yoksa "geçmiş gerçek değerlere" mi odaklanayım'ı alıyordu.
 
+def ses_optimizer(train, test, alphas, step=48):
+    """En iyi alfa değerini bulmayı sağlar.
 
-def ses_optimizer(train, alphas, step=48):
+    Args:
+        train (pd.Series): train veri seti
+        test (pd.Series): test veri seti
+        alphas (list): alfa değerlerinin tutulduğu liste
+        step (int, optional): Kaç adım (ay) sonrası tahmin edilecek. Defaults to 48.
+
+    Returns:
+        best_alpha, best_mae: En iyi alfa ve mae değerlerini verir
+    """
     best_alpha, best_mae = None, float("inf")
 
-    for alpha in alphas:
-        ses_model = SimpleExpSmoothing(train).fit(smoothing_level=alpha)
-        y_pred = ses_model.forecast(step)
-        mae = mean_absolute_error(test, y_pred)
+    for alpha in alphas: # alfa deeğerlerinin tutulduğu liste içerisinde gez
+        ses_model = SimpleExpSmoothing(train).fit(smoothing_level=alpha) # döndüğün alfa değeri ile SES model oluştur
+        y_pred = ses_model.forecast(step) # parametreden gelen adım kadar sonrasını tahmin et
+        mae = mean_absolute_error(test, y_pred) # test seti ile tahmin edilen seti karşılaştır ve mae hesapla
 
-        if mae < best_mae:
+        if mae < best_mae: # en iyi mae'yi işaretle
             best_alpha, best_mae = alpha, mae
 
         print("alpha:", round(alpha, 2), "mae:", round(mae, 4))
@@ -106,16 +119,16 @@ def ses_optimizer(train, alphas, step=48):
     return best_alpha, best_mae
 
 alphas = np.arange(0.8, 1, 0.01)
-ses_optimizer(train, alphas)
+ses_optimizer(train, test, alphas)
 
-best_alpha, best_mae = ses_optimizer(train, alphas)
+best_alpha, best_mae = ses_optimizer(train, test, alphas)
 
 ############################
 # * Final SES Model
 ############################
 
-ses_model = SimpleExpSmoothing(train).fit(smoothing_level=best_alpha)
-y_pred = ses_model.forecast(48)
+ses_model = SimpleExpSmoothing(train).fit(smoothing_level=best_alpha) # yukarıdaki optimizer fonksiyonumdan elde ettiğim best_alpha değeri ile yeni bir model kuruyorum
+y_pred = ses_model.forecast(48) # test setimiz train setinden 48 ay sonrayı kapsadığından 48 adım sonrasını forecast ettim
 
 plot_co2(train, test, y_pred, "Single Exponential Smoothing")
 mean_absolute_error(test, y_pred)

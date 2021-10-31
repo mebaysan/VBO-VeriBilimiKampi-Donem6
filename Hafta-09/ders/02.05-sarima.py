@@ -53,16 +53,21 @@ len(test)  # 48 ay
 ##################################################
 # * SARIMA(p, d, q): (Seasonal Autoregressive Integrated Moving-Average)
 ##################################################
+
+
 def plot_co2(train, test, y_pred, title):
     mae = mean_absolute_error(test, y_pred)
-    train["1985":].plot(legend=True, label="TRAIN", title=f"{title}, MAE: {round(mae,2)}")
+    train["1985":].plot(legend=True, label="TRAIN",
+                        title=f"{title}, MAE: {round(mae,2)}")
     test.plot(legend=True, label="TEST", figsize=(6, 4))
     y_pred.plot(legend=True, label="PREDICTION")
     plt.show()
 
 
-
-model = SARIMAX(train, order=(1, 0, 1), seasonal_order=(0, 0, 0, 12))
+model = SARIMAX(train,
+                order=(1, 0, 1), # model dereceleri: p, d, q
+                seasonal_order=(0, 0, 0, 12) # mevsimsellik bileşenleri
+                )
 sarima_model = model.fit(disp=0)
 
 y_pred_test = sarima_model.get_forecast(steps=48)
@@ -81,12 +86,15 @@ p = d = q = range(0, 2)
 pdq = list(itertools.product(p, d, q))
 seasonal_pdq = [(x[0], x[1], x[2], 12) for x in list(itertools.product(p, d, q))]
 
+
 def sarima_optimizer_aic(train, pdq, seasonal_pdq):
-    best_aic, best_order, best_seasonal_order = float("inf"), float("inf"), None
+    best_aic, best_order, best_seasonal_order = float(
+        "inf"), float("inf"), None
     for param in pdq:
         for param_seasonal in seasonal_pdq:
             try:
-                sarimax_model = SARIMAX(train, order=param, seasonal_order=param_seasonal)
+                sarimax_model = SARIMAX(
+                    train, order=param, seasonal_order=param_seasonal)
                 results = sarimax_model.fit(disp=0)
                 aic = results.aic
                 if aic < best_aic:
@@ -98,7 +106,8 @@ def sarima_optimizer_aic(train, pdq, seasonal_pdq):
     return best_order, best_seasonal_order
 
 
-best_order, best_seasonal_order = sarima_optimizer_aic(train, pdq, seasonal_pdq)
+best_order, best_seasonal_order = sarima_optimizer_aic(
+    train, pdq, seasonal_pdq)
 
 
 ############################
@@ -120,5 +129,13 @@ plot_co2(train, test, y_pred, "SARIMA")
 ##################################################
 # * Modelin İstatistiksel Çıktılarının İncelenmesi
 ##################################################
+# Geleneksel Yöntemlerde Zaman Serisi model kurulması için gerekli varsayımlar vardır.
+# Bunlar;
+# Kalıntılar arasında otokorelasyon olmamalıdır.
+# Kalıntıların ortalaması sıfır olmalıdır.
+# Kalıntıların varyansı sabit olmalı.
+# Kalıntılar normal dağılmalı.
+
+
 sarima_final_model.plot_diagnostics(figsize=(15, 12))
 plt.show()

@@ -84,8 +84,6 @@ for model in ["additive", "multiplicative"]:
 # Single Exponential Smoothing
 #################################
 
-
-
 def ses_optimizer(train, alphas, step=48):
     best_alpha, best_mae = None, float("inf")
     for alpha in alphas:

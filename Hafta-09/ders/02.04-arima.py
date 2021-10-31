@@ -54,15 +54,20 @@ len(test)  # 48 ay
 ##################################################
 # * ARIMA(p, d, q): (Autoregressive Integrated Moving Average)
 ##################################################
+
+
 def plot_co2(train, test, y_pred, title):
     mae = mean_absolute_error(test, y_pred)
-    train["1985":].plot(legend=True, label="TRAIN", title=f"{title}, MAE: {round(mae,2)}")
+    train["1985":].plot(legend=True, label="TRAIN",
+                        title=f"{title}, MAE: {round(mae,2)}")
     test.plot(legend=True, label="TEST", figsize=(6, 4))
     y_pred.plot(legend=True, label="PREDICTION")
     plt.show()
 
 
-arima_model = ARIMA(train, order=(1, 1, 1)).fit(disp=0)
+arima_model = ARIMA(train,
+                    order=(1, 1, 1) # model derecesi: p, d, q
+                    ).fit(disp=0)
 arima_model.summary()
 
 y_pred = arima_model.forecast(48)[0]
@@ -89,6 +94,7 @@ plt.show()
 # p ve q kombinasyonlarının üretilmesi
 p = d = q = range(0, 4)
 pdq = list(itertools.product(p, d, q))
+
 
 def arima_optimizer_aic(train, orders):
     best_aic, best_params = float("inf"), None
@@ -119,7 +125,6 @@ y_pred = pd.Series(y_pred, index=test.index)
 plot_co2(train, test, y_pred, "ARIMA")
 
 
-
 ############################
 # ACF & PACF Grafiklerine Göre Model Derecesini Belirleme
 ############################
@@ -134,14 +139,15 @@ def acf_pacf(y, lags=30):
 
     # Durağanlık testi (HO: Seri Durağan değildir. H1: Seri Durağandır.)
     p_value = sm.tsa.stattools.adfuller(y)[1]
-    ts_ax.set_title('Time Series Analysis Plots\n Dickey-Fuller: p={0:.5f}'.format(p_value))
+    ts_ax.set_title(
+        'Time Series Analysis Plots\n Dickey-Fuller: p={0:.5f}'.format(p_value))
     smt.graphics.plot_acf(y, lags=lags, ax=acf_ax)
     smt.graphics.plot_pacf(y, lags=lags, ax=pacf_ax)
     plt.tight_layout()
     plt.show()
 
-acf_pacf(y)
 
+acf_pacf(y)
 
 
 #################################

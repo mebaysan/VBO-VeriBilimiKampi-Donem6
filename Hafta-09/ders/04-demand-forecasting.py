@@ -1,8 +1,8 @@
 #####################################################
-# Demand Forecasting
+# * Demand Forecasting
 #####################################################
 
-# Store Item Demand Forecasting Challenge
+# Store Item Demand Forecasting Challenge (Kaggle yarışması)
 # https://www.kaggle.com/c/demand-forecasting-kernels-only
 
 # Farklı store için 3 aylık item-level sales tahmini.
@@ -38,16 +38,16 @@ def check_df(dataframe, head=5):
 
 
 ########################
-# Loading the data
+# * Loading the data
 ########################
 
-train = pd.read_csv('datasets/demand_forecasting/train.csv', parse_dates=['date'])
-test = pd.read_csv('datasets/demand_forecasting/test.csv', parse_dates=['date'])
+train = pd.read_csv('datasets/demand_forecasting/train.csv', parse_dates=['date']) # 2018 ilk 3 ay öncesindeki aylar
+test = pd.read_csv('datasets/demand_forecasting/test.csv', parse_dates=['date']) # 2018 ilk 3 ay
 sample_sub = pd.read_csv('datasets/demand_forecasting/sample_submission.csv')
 df = pd.concat([train, test], sort=False)
 
 #####################################################
-# EDA
+# * EDA
 #####################################################
 
 df["date"].min(), df["date"].max()
@@ -75,12 +75,12 @@ df.groupby(["store", "item"]).agg({"sales": ["sum"]})
 df.groupby(["store", "item"]).agg({"sales": ["sum", "mean", "median", "std"]})
 
 #####################################################
-# FEATURE ENGINEERING
+# * FEATURE ENGINEERING
 #####################################################
 
 
 ########################
-# Date Features
+# * Date Features
 ########################
 
 
@@ -99,39 +99,45 @@ def create_date_features(df):
 
 df = create_date_features(df)
 
-check_df(df)
+check_df(df)  
 
 df.groupby(["store", "item", "month"]).agg({"sales": ["sum", "mean", "median", "std"]})
 
 
 ########################
-# Random Noise
+# * Random Noise
 ########################
+# veriye kendimiz rasgele gürültü ekleyeceğim. Rassalığı oluşturabilmek adına
 
 def random_noise(dataframe):
     return np.random.normal(scale=1.6, size=(len(dataframe),))
 
 
 ########################
-# Lag/Shifted Features
+# * Lag/Shifted Features
 ########################
+# gecikme feature'ları türeteceğim.
+# geçmiş gerçek değerleri türetecğiz yani
+# buradaki temel mantık, zaman serisinin en çok kendisinden önceki değerden etkileniyor olduğunu kabul etmemizdir;
+# ve uğraştığımız set tek değişkenli bir veri seti olmadığından, kendimizce özellikler türetiyoruz
 
-
-df.sort_values(by=['store', 'item', 'date'], axis=0, inplace=True)
+df.sort_values(by=['store', 'item', 'date'], axis=0, inplace=True) # önemli bir adım.
 
 check_df(df)
 
 # satışın ilk 10 gözlemine bakalım:
 df["sales"].head(10)
 
-df["sales"].shift(1).values[0:10]
+# Birinci gecikme
+df["sales"].shift(1).values[0:10] # her gözlemin 1 öncesindeki gözlemi verir. Doğal olarak 1. sıradaki gözlem için arkasında bir gözlem olmadığından nan gelecektir.
 
+# İkinci gecikme
 df["sales"].shift(2).values[0:10]
 
-
+# Üçüncü gecikme
 df["sales"].shift(3).values[0:10]
 
-
+# Anlaşılır olması için hepsini bir arada gözlemleyelim
 pd.DataFrame({"sales": df["sales"].values[0:10],
               "lag1": df["sales"].shift(1).values[0:10],
               "lag2": df["sales"].shift(2).values[0:10],
@@ -141,9 +147,9 @@ pd.DataFrame({"sales": df["sales"].values[0:10],
 
 df.groupby(["store", "item"])['sales'].head()
 
-df.groupby(["store", "item"])['sales'].transform(lambda x: x.shift(1))
+df.groupby(["store", "item"])['sales'].transform(lambda x: x.shift(1)) # transform sayesinde direkt olarak hesapladığımız değeri atayabiliyoruz
 
-def lag_features(dataframe, lags):
+def lag_features(dataframe, lags): # mevsimsellik etkisi yakalamaya çalışıyorum. 
     for lag in lags:
         dataframe['sales_lag_' + str(lag)] = dataframe.groupby(["store", "item"])['sales'].transform(
             lambda x: x.shift(lag)) + random_noise(dataframe)
@@ -154,20 +160,24 @@ df = lag_features(df, [91, 98, 105, 112, 119, 126, 182, 364, 546, 728])
 
 check_df(df)
 
-
+df[df['sales'].isnull()]
 
 ########################
-# Rolling Mean Features
+# * Rolling Mean Features
 ########################
+# hareketli ortalama feature'ları
 
-
+# window = gözlemden kaç adım geriye (gözlemin kendisi dahil) gidilecek
+# gözlem, kendisi dahil {window} adım kadar geri gider ve gözlemleri toplar, ortalamasını alır, döner.
+# gözlemin kendisi dahil, {window} önceki değerleri toplar ve {window} 'a böler (ortalamalarını alır).
+# gözlemden önce {window} kadar gözlem yoksa nan döner.
 
 pd.DataFrame({"sales": df["sales"].values[0:10],
               "roll2": df["sales"].rolling(window=2).mean().values[0:10],
               "roll3": df["sales"].rolling(window=3).mean().values[0:10],
               "roll5": df["sales"].rolling(window=5).mean().values[0:10]})
 
-
+# * hareketli ortalamalar üretilirken öncelikle 1 shift almak gerekir. Gerçek önceki değerleri üretmek istediğimizde gözlemin kendisini ortalama hesabına katmamalıyız. Bu sebeple öncelikle shift aldık sonra hareketli ortalama hesapladık.
 pd.DataFrame({"sales": df["sales"].values[0:10],
               "roll2": df["sales"].shift(1).rolling(window=2).mean().values[0:10],
               "roll3": df["sales"].shift(1).rolling(window=3).mean().values[0:10],
@@ -183,14 +193,15 @@ def roll_mean_features(dataframe, windows):
     return dataframe
 
 
-df = roll_mean_features(df, [365, 546])
+df = roll_mean_features(df, [365, 546]) # 365 gün ve 546 gün öncesinden hareketli ortalamaları alıyoruz
 df.tail()
 
 
 ########################
-# Exponentially Weighted Mean Features
+# * Exponentially Weighted Mean Features
 ########################
-
+# ağırlıklı hareketli ortalama
+# ewm içerisindeki alpha değeri 0 ile 1 arasında değer alır. 1'e ne kadar yakınsa o kadar son değerlere ağırlık verir. 
 
 pd.DataFrame({"sales": df["sales"].values[0:10],
               "roll2": df["sales"].shift(1).rolling(window=2).mean().values[0:10],
@@ -216,26 +227,26 @@ check_df(df)
 
 
 ########################
-# One-Hot Encoding
+# * One-Hot Encoding
 ########################
 
 df = pd.get_dummies(df, columns=['store', 'item', 'day_of_week', 'month'])
 
 
 ########################
-# Converting sales to log(1+sales)
+# * Converting sales to log(1+sales)
 ########################
 
-df['sales'] = np.log1p(df["sales"].values)
+df['sales'] = np.log1p(df["sales"].values) # bağımlı değişkenin logaritmasını alıyorum. GBM temelli bir algoritma kullanacağımdan dolayı optimizasyon süresini kısaltmak için logaritmasını alıyorum.
 check_df(df)
 
 
 #####################################################
-# Model
+# * Model
 #####################################################
 
 ########################
-# Custom Cost Function
+# * Custom Cost Function
 ########################
 
 # MAE: mean absolute error
@@ -258,7 +269,7 @@ def lgbm_smape(preds, train_data):
 
 
 ########################
-# Time-Based Validation Sets
+# * Time-Based Validation Sets
 ########################
 
 test
