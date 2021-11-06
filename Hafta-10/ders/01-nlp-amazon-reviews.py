@@ -383,3 +383,23 @@ cv_results = cross_validate(rf_final, X_count, y, cv=3, scoring=["accuracy", "f1
 cv_results['test_accuracy'].mean()
 cv_results['test_f1'].mean()
 cv_results['test_roc_auc'].mean()
+
+
+###############################
+# Word Embedding (Teorik)
+###############################
+# Google's Word2Vec (2013)
+# Stanford's GloVe (2014)
+# Facebook's FastText (2016)
+# Google's BERT (Bidirectional Encoder Representations from Transformers, 2018)
+"""
+> Amacımız kelime vektörleri oluşturmaktır
+> Semantiklik, bağlamsallık kazanmaya çalışırız
+"""
+
+# CBOW (Continuous Bag-of-Words): Context'ten tek bir kelimeyi tahmin etmek
+# Skip-gram: # Tek bir kelimeden context'i tahmin etmek
+
+# Life is like riding a bicycle. To keep your balance, you must keep moving. Albert Einstein.
+
+# CBOW: Input = [is, like, a, bicycle], Output = riding
