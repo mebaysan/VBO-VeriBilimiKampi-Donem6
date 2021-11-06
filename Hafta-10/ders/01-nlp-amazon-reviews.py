@@ -13,18 +13,22 @@
 # 4. Feature Engineering
 # 5. Sentiment Modeling
 
+# !pip install nltk
+# !pip install textblob
+# !pip install wordcloud
 
 from warnings import filterwarnings
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from PIL import Image
-from nltk.corpus import stopwords
-from nltk.sentiment import SentimentIntensityAnalyzer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score, GridSearchCV, cross_validate
 from sklearn.preprocessing import LabelEncoder
+############################
+from PIL import Image
+from nltk.corpus import stopwords
+from nltk.sentiment import SentimentIntensityAnalyzer
 from textblob import Word, TextBlob
 from wordcloud import WordCloud
 
@@ -39,56 +43,66 @@ pd.set_option('display.float_format', lambda x: '%.2f' % x)
 # 1. Text Preprocessing
 ##################################################
 
-df = pd.read_csv("datasets/amazon_reviews.csv", sep=",")
+df = pd.read_csv("datasets/amazon_review.csv", sep=",")
 df.head()
 df.info()
 
 ###############################
 # Normalizing Case Folding
 ###############################
-
+# bütün harfleri küçülttüm
 df['reviewText'] = df['reviewText'].str.lower()
 
 ###############################
 # Punctuations
 ###############################
-
+# noktalama işaretlerinden kurtuluyorum
 df['reviewText'] = df['reviewText'].str.replace('[^\w\s]', '')
 
 ###############################
 # Numbers
 ###############################
-
+# sayılardan kurtuluyorum
 df['reviewText'] = df['reviewText'].str.replace('\d', '')
 
 ###############################
 # Stopwords
 ###############################
+# ölçüm değeri taşınmayacak olan kelimelerin silinmesi
 
 # nltk.download('stopwords')
+# >>> from nltk import download
+# >>> download('stopwords')
 sw = stopwords.words('english')
 df['reviewText'] = df['reviewText'].apply(lambda x: " ".join(x for x in str(x).split() if x not in sw))
 
 ###############################
 # Rarewords
 ###############################
+# biraz daha custom bir ihtiyaçtır.
 
-drops = pd.Series(' '.join(df['reviewText']).split()).value_counts()[-1000:]
-df['reviewText'] = df['reviewText'].apply(lambda x: " ".join(x for x in x.split() if x not in drops))
+drops = pd.Series(' '.join(df['reviewText']).split()).value_counts() # her kelimenin kaç adet geçtiği
+drops = drops[drops <= 1] # 1 kere geçen kelimeleri bir listeye alıyorum
+
+df['reviewText'] = df['reviewText'].apply(lambda x: " ".join(x for x in x.split() if x not in drops)) # ilgili review içerisindeki kelimelerden`drops` içinde olmayanlar
 
 ###############################
 # Tokenization
 ###############################
+# metinleri parçalarına (kelimelere) ayırmaktır
 
 # nltk.download("punkt")
+# >>> from nltk import download
+# >>> download("punkt")
 df["reviewText"].apply(lambda x: TextBlob(x).words).head()
 
 ###############################
 # Lemmatization
 ###############################
-
-# Kelimeleri köklerine ayırma işlemidir.
+# Kelimeleri köklerine ayırma işlemidir. ÖR: "göz" den türemiş kelimeler: gözlük, gözcü vb. Ölçüm niteliğini artırmak için kelimeleri köklerine ayırma işlemi gerçekleştiriyoruz
 # nltk.download('wordnet')
+# >>> from nltk import download
+# >>> download("wordnet")
 df['reviewText'] = df['reviewText'].apply(lambda x: " ".join([Word(word).lemmatize() for word in x.split()]))
 
 df['reviewText'].head(10)
@@ -100,7 +114,7 @@ df['reviewText'].head(10)
 ###############################
 # Terim Frekanslarının Hesaplanması
 ###############################
-
+# hangi kelimeden kaç adet var
 tf = df["reviewText"].apply(lambda x: pd.value_counts(x.split(" "))).sum(axis=0).reset_index()
 
 tf.columns = ["words", "tf"]
@@ -112,14 +126,14 @@ tf["tf"].describe([0.05, 0.10, 0.25, 0.50, 0.75, 0.80, 0.90, 0.95, 0.99]).T
 ###############################
 # Barplot
 ###############################
-
+# kelime frekanslarından bar plot çizelim
 tf[tf["tf"] > 500].plot.bar(x="words", y="tf")
 plt.show()
 
 ###############################
 # Wordcloud
 ###############################
-
+# kelime bulutu oluşturuyorum
 text = " ".join(i for i in df.reviewText)
 wordcloud = WordCloud().generate(text)
 plt.imshow(wordcloud, interpolation="bilinear")
@@ -140,7 +154,7 @@ wordcloud.to_file("wordcloud.png")
 ###############################
 # Şablonlara Göre Wordcloud
 ###############################
-
+# kelime bulutunun arkasına resim koyabiliriz
 vbo_mask = np.array(Image.open("notes/HAFTA_11/img/tr.png"))
 
 wc = WordCloud(background_color="white",
@@ -160,17 +174,18 @@ wc.to_file("vbo.png")
 ##################################################
 # 3. Sentiment Analysis
 ##################################################
-
 # NLTK already has a built-in, pretrained sentiment analyzer
 # called VADER (Valence Aware Dictionary and sEntiment Reasoner).
 
 df.head()
 # nltk.download('vader_lexicon')
+# >>> from nltk import download
+# >>> download('vader_lexicon')
+
 sia = SentimentIntensityAnalyzer()
-sia.polarity_scores("The film was awesome")
-
-
-sia.polarity_scores("I liked this music but it is not good as the other one")
+sia.polarity_scores("The film was awesome") # ilgili string ifadenin duygu skoru
+sia.polarity_scores("I liked this music but it is not good as the other one") # -1 ile +1 arasında değer alır.
+# +1'e yaklaştıkça pozitif, -1'e yaklaştıkça negatif
 
 # mesela review'ları büyültmek istersek:
 df["reviewText"].apply(lambda x: x.upper())
@@ -198,7 +213,7 @@ df.head()
 # Target'ın Oluşturulması
 ###############################
 
-df["reviewText"][0:10].apply(lambda x: "pos" if sia.polarity_scores(x)["compound"] > 0 else "neg")
+df["reviewText"][0:10].apply(lambda x: "pos" if sia.polarity_scores(x)["compound"] > 0 else "neg") # polarity score 0'dan büyük ise pos değil ise neg olarak etiketleyeceğiz
 
 # şimdi tüm veri için aynı işlemi yapıp veri setinin içine sentiment_label adında bir değişken ekleyelim:
 df["sentiment_label"] = df["reviewText"].apply(lambda x: "pos" if sia.polarity_scores(x)["compound"] > 0 else "neg")
@@ -216,12 +231,25 @@ df["sentiment_label"] = LabelEncoder().fit_transform(df["sentiment_label"])
 X = df["reviewText"]
 y = df["sentiment_label"]
 
+# Count Vectors: frekans temsiller
+# TF-IDF Vectors: normalize edilmiş frekans temsiller
+# Word Embeddings (Word2Vec, GloVe, BERT vs)
+#      Ağırlık öğrenmeye benzer şekilde kelime vector'lerinin öğrenilmesiyle oluşturulan sayısal temsiller
 
-# ngram
+
+###############################
+# NGrams
+###############################
 a = """Bu örneği anlaşılabilmesi için daha uzun bir metin üzerinden göstereceğim.
 N-gram'lar birlikte kullanılan kelimelerin kombinasyolarını gösterir ve feature üretmek için kullanılır"""
-
+# ngram
 TextBlob(a).ngrams(3)
+
+# Metinden N kadar kelimeyi kaydırarak sıralar
+# ÖR:
+# >>> Bu örneği anlaşılabilmesi
+# >>> örneği anlaşılabilmesi için
+# >>> anlaşılabilmesi için daha
 
 
 ###############################
@@ -229,6 +257,7 @@ TextBlob(a).ngrams(3)
 ###############################
 
 from sklearn.feature_extraction.text import CountVectorizer
+# matris oluşturur => [hangi metinde] X [hangi kelimeden kaç tane var]
 
 corpus = ['This is the first document.',
           'This document is the second document.',
@@ -259,7 +288,6 @@ X_count.toarray()[10:15]
 ###############################
 # TF-IDF
 ###############################
-
 # word tf-idf
 from sklearn.feature_extraction.text import TfidfVectorizer
 vectorizer = TfidfVectorizer(analyzer='word')
@@ -344,7 +372,6 @@ rf_params = {"max_depth": [5, 8, None],
 rf_best_grid = GridSearchCV(rf_model,
                             rf_params,
                             cv=5,
-                            n_jobs=-1,
                             verbose=True).fit(X_count, y)
 
 rf_best_grid.best_params_
