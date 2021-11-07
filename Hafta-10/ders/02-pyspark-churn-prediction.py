@@ -1,5 +1,5 @@
 ##################################################
-# Churn Prediction using PySpark
+# * Churn Prediction using PySpark
 ##################################################
 
 # Şirketi terk edecek müşterileri tahmin edebilecek bir makine öğrenmesi modeli geliştirebilir misiniz?
@@ -12,7 +12,7 @@
 # 5. Modeling
 
 ##################################################
-# Kurulum
+# * Kurulum
 ##################################################
 
 # https://spark.apache.org/downloads.html
@@ -44,8 +44,16 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.float_format', lambda x: '%.2f' % x)
 
-findspark.init("/Users/simgeerek/Documents/Spark/spark-3.1.2-bin-hadoop3.2")
+findspark.init("/Users/mebaysan/spark/spark-3.2.0-bin-hadoop3.2") # download linkinden spark'ı indirdim ve ilgili path altına çıkarttım
 
+##################################################
+# * Spark Giriş
+##################################################
+
+# Spark session ayağa kaldırıyorum
+# master => hangi server
+# appName => Spark uygulama adı
+# getOrCreate => ilgili master'da ilgili isimde varsa onu getir yoksa oluştur
 spark = SparkSession.builder \
     .master("local") \
     .appName("pyspark_giris") \
@@ -53,11 +61,11 @@ spark = SparkSession.builder \
 
 sc = spark.sparkContext
 
-# http://mvahit-mbp.lan:4040/jobs/
-# sc.stop()
+# localhost:4040/jobs/ # => Spark arayüzü
+# sc.stop() # durdurmak istersek
 
 ##################################################
-# Exploratory Data Analysis
+# * Exploratory Data Analysis
 ##################################################
 
 
@@ -65,11 +73,11 @@ sc = spark.sparkContext
 # Pandas df ile Spark df farkını anlamak.
 ############################
 
-spark_df = spark.read.csv("datasets/churn.csv", header=True, inferSchema=True)
+spark_df = spark.read.csv("datasets/churn.csv", header=True, inferSchema=True) # oluşturduğumuz spark instance üzerinden veriyi okuyorum
 type(spark_df)
 
 
-df = sns.load_dataset("diamonds")
+df = sns.load_dataset("diamonds") # klasik bildiğimiz pandas veri seti
 type(df)
 
 
@@ -80,9 +88,9 @@ df.dtypes
 spark_df.dtypes
 
 df.ndim
-# spark_df.ndim
+# spark_df.ndim # böyle bir attr yok
 
-
+########################################################
 # Reading a json file
 # df = spark.read.json(json_file_path)
 #
@@ -92,10 +100,10 @@ df.ndim
 # # Reading a parquet file
 # df = spark.read.load(parquet_file_path) # or
 # df = spark.read.parquet(parquet_file_path)
-
+########################################################
 
 ############################
-# Exploratory Data Analysis
+# * Exploratory Data Analysis
 ############################
 
 # Gözlem ve değişken sayısı
@@ -110,7 +118,7 @@ spark_df.Age
 
 
 # Bir değişkeni görmek
-spark_df.select(spark_df.Age).show()
+spark_df.select(spark_df.Age).show() # değişken göstermek için show metodu kullanırız
 spark_df.take(5)
 spark_df.head()
 spark_df.show()
@@ -155,7 +163,6 @@ spark_df.select(num_cols).describe().show()
 
 spark_df.select(num_cols).describe().toPandas().transpose()
 
-
 # Tüm kategorik değişkenlerin seçimi ve özeti
 cat_cols = [col[0] for col in spark_df.dtypes if col[1] == 'string']
 
@@ -168,39 +175,42 @@ for col in num_cols:
 
 
 ##################################################
-# SQL Sorguları
+# * SQL Sorguları
 ##################################################
 
 
-spark_df.createOrReplaceTempView("tbl_df")
+spark_df.createOrReplaceTempView("spark_df") # spark_df adında bir tablo oluşturuyorum eğer yoksa, varsa onunla değiştiriyorum
 
-spark.sql("show databases").show()
+spark.sql("show databases").show() # mevcut session'daki veri tabanları
 
-spark.sql("show tables").show()
+spark.sql("show tables").show() # mevcut session'daki tablolar
 
-spark.sql("select age from tbl_df limit 5").show()
+spark.sql("select age from spark_df limit 5").show() # mevcut session'da sql sorgusu çalıştırıyorum
 
-spark.sql("select churn, avg(age) from tbl_df group by Churn").show()
+spark.sql("select churn, avg(age) from spark_df group by Churn").show()
 
 
+spark.sql('select * from spark_df').toPandas().head() # toPandas yardımı ile spark nesnelerini pandas nesnelerine çevirebiliriz
 ##################################################
-# Data Preprocessing & Feature Engineering
+# * Data Preprocessing & Feature Engineering
 ##################################################
 
 ############################
-# Missing Values
+# * Missing Values
 ############################
 
 from pyspark.sql.functions import when, count, col
-spark_df.select([count(when(col(c).isNull(), c)).alias(c) for c in spark_df.columns]).toPandas().T
+spark_df.select(
+    [count(when(col(c).isNull(), c)).alias(c) for c in spark_df.columns]
+    ).toPandas().T
 
 
 # eksik değere sahip satırları silmek
-spark_df.dropna().show()
+spark_df.dropna().show() # missing values kaldırıldı
 
 
 # tüm veri setindeki eksiklikleri belirli bir değerle doldurmak
-spark_df.fillna(50).show()
+spark_df.fillna(50).show() # missing values 50 ile dolduruldu
 
 
 # eksik değerleri değişkenlere göre doldurmak
@@ -210,30 +220,29 @@ spark_df.na.fill({'age': 50, 'names': 'unknown'}).show()
 
 
 ############################
-# Feature Interaction
+# * Feature Interaction
 ############################
 
-
-spark_df = spark_df.withColumn('age_total_purchase', spark_df.age / spark_df.total_purchase)
+spark_df = spark_df.withColumn('age_total_purchase', # withColumn ile yeni değişken oluştururuz, olmayan bir değişken adını yazarsak o değişkeni oluşturur
+                                spark_df.age / spark_df.total_purchase)
 spark_df.show(5)
 
 
 ############################
-# Bucketization / Bining / Num to Cat
+# * Bucketization / Bining / Num to Cat
 ############################
-
 
 spark_df.select('age').describe().toPandas().transpose()
 
 
-bucketizer = Bucketizer(splits=[0, 35, 45, 65], inputCol="age", outputCol="age_cat")
+bucketizer = Bucketizer(splits=[0, 35, 45, 65], inputCol="age", outputCol="age_cat") # splitleri ver, hangi değişkeni kullanmak istiyorsun, bunu hangi değişken olarak çıkarmak istiyorsun
 
-spark_df = bucketizer.setHandleInvalid("keep").transform(spark_df)
+spark_df = bucketizer.setHandleInvalid("keep").transform(spark_df) # oluşturduğumuz nesneyi kullanarak transform (dönüşüm) işlemini uyguluyoruz
 
 spark_df.show(20)
 
 
-spark_df = spark_df.withColumn('age_cat', spark_df.age_cat + 1)
+spark_df = spark_df.withColumn('age_cat', spark_df.age_cat + 1) # withColumn ile aynı zamanda mevcut değişkeni güncelleyebiliriz
 
 
 spark_df.groupby("age_cat").count().show()
@@ -249,25 +258,26 @@ spark_df.groupby("age_cat").agg({'churn': "mean"}).show()
 
 
 ############################
-# when ile Değişken Türetmek (segment)
+# * when ile Değişken Türetmek (segment)
 ############################
+# from pyspark.sql.functions import when
 
 spark_df = spark_df.withColumn('segment', when(spark_df['years'] < 5, "segment_b").otherwise("segment_a"))
 
 
 ############################
-# when ile Değişken Türetmek (age_cat_2)
+# * when ile Değişken Türetmek (age_cat_2)
 ############################
 
 spark_df.withColumn('age_cat_2',
-                    when(spark_df['age'] < 36, "young").
+                    when(spark_df['age'] < 36, "young"). # koşullar when() ile zincirleme birbirine bağlanır
                     when((35 < spark_df['age']) & (spark_df['age'] < 46), "mature").
                     otherwise("senior")).show()
 
 
 
 ############################
-# Label Encoding
+# * Label Encoding
 ############################
 
 
@@ -281,14 +291,14 @@ indexer.fit(spark_df).transform(spark_df).show(5)
 
 temp_sdf = indexer.fit(spark_df).transform(spark_df)
 
-spark_df = temp_sdf.withColumn("segment_label", temp_sdf["segment_label"].cast("integer"))
+spark_df = temp_sdf.withColumn("segment_label", temp_sdf["segment_label"].cast("integer")) # float olan mevcut değişkeni integer olarak cast ediyorum
 
 spark_df = spark_df.drop('segment')
 
 ############################
-# One Hot Encoding
+# * One Hot Encoding
 ############################
-
+# * ** eğer one-hot encoding yapacaksak bile önce label encoding yapmalıyız (Pyspark içinde)
 encoder = OneHotEncoder(inputCols=["age_cat"], outputCols=["age_cat_ohe"])
 spark_df = encoder.fit(spark_df).transform(spark_df)
 
@@ -296,7 +306,7 @@ spark_df.show(5)
 
 
 ############################
-# TARGET'ın Tanımlanması
+# * TARGET'ın Tanımlanması
 ############################
 
 
@@ -307,20 +317,23 @@ spark_df.show(5)
 
 
 ############################
-# Feature'ların Tanımlanması
+# * Feature'ların Tanımlanması
 ############################
-
+"""
+Spark derki; bana bağımlı değişkeni 1 formda gönder ve o formun adı "label" olsun. 
+             Bağımsız değişkenleri de VectorAssembler'dan geçir ve adı "features" olsun der.
+"""
 cols = ['age', 'total_purchase', 'account_manager', 'years',
         'num_sites', 'age_total_purchase', 'segment_label', 'age_cat_ohe']
 
 
-va = VectorAssembler(inputCols=cols, outputCol="features")
-va_df = va.transform(spark_df)
+va = VectorAssembler(inputCols=cols, outputCol="features") # [cols] değişkenlerini alıp VectorAssembler'dan geçiriyorum ve oluşan yeni değişkene "features" adını veriyorum
+va_df = va.transform(spark_df) # "features" değişkenini spark_df'e ekliyorum
 va_df.show()
 
 
 # Final sdf
-final_df = va_df.select("features", "label")
+final_df = va_df.select("features", "label") # Spark; "features" ve "label" istediğinden dolayı bu iki değişkeni seçiyorum
 final_df.show(5)
 
 # StandardScaler
@@ -330,7 +343,7 @@ final_df.show(5)
 
 
 # Split the dataset into test and train sets.
-train_df, test_df = final_df.randomSplit([0.7, 0.3], seed=17)
+train_df, test_df = final_df.randomSplit([0.7, 0.3], seed=17) # eğitim ve test olarak veri setini ayırıyorum: 0.7 eğitim ...
 train_df.show(10)
 test_df.show(10)
 
@@ -344,15 +357,15 @@ print("Test Dataset Count: " + str(test_df.count()))
 
 
 ##################################################
-# Modeling
+# * Modeling
 ##################################################
 
 ############################
-# Logistic Regression
+# * Logistic Regression
 ############################
 
-log_model = LogisticRegression(featuresCol='features', labelCol='label').fit(train_df)
-y_pred = log_model.transform(test_df)
+log_model = LogisticRegression(featuresCol='features', labelCol='label').fit(train_df) # train set ile modeli kurdum
+y_pred = log_model.transform(test_df) # test seti ile tahmin et
 y_pred.show()
 
 
@@ -363,7 +376,10 @@ y_pred.select("label", "prediction").show()
 y_pred.filter(y_pred.label == y_pred.prediction).count() / y_pred.count()
 
 
-evaluator = BinaryClassificationEvaluator(labelCol="label", rawPredictionCol="prediction", metricName='areaUnderROC')
+evaluator = BinaryClassificationEvaluator(labelCol="label", # hangi değişkende bağımlı değişken
+                                        rawPredictionCol="prediction", # tahmin edilen bağımlı değişken hangi değişkende
+                                        metricName='areaUnderROC'
+                                        )
 evaluatorMulti = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction")
 
 acc = evaluatorMulti.evaluate(y_pred, {evaluatorMulti.metricName: "accuracy"})
@@ -377,7 +393,7 @@ print("accuracy: %f, precision: %f, recall: %f, f1: %f, roc_auc: %f" % (acc, pre
 
 
 ############################
-# Gradient Boosted Tree Classifier
+# * Gradient Boosted Tree Classifier
 ############################
 
 gbm = GBTClassifier(maxIter=100, featuresCol="features", labelCol="label")
@@ -391,7 +407,7 @@ y_pred.filter(y_pred.label == y_pred.prediction).count() / y_pred.count()
 
 
 ############################
-# Model Tuning
+# * Model Tuning
 ############################
 
 evaluator = BinaryClassificationEvaluator()
@@ -419,7 +435,7 @@ ac.filter(ac.label == ac.prediction).count() / ac.count()
 
 
 ############################
-# New Prediction
+# * New Prediction
 ############################
 
 
@@ -467,7 +483,7 @@ results.select("names", "prediction").show()
 
 
 ##################################################
-# BONUS: User Defined Functions (UDFs)
+# * BONUS: User Defined Functions (UDFs)
 ##################################################
 
 def age_converter(age):
@@ -483,10 +499,11 @@ def age_converter(age):
 from pyspark.sql.types import IntegerType, StringType, FloatType
 from pyspark.sql.functions import udf
 
-func_udf = udf(age_converter, IntegerType())
+func_udf = udf(age_converter, IntegerType()) # oluşturduğum age_converter fonksiyonu udf olarak tanımlıyorum. 
+# udf fonksiyonu 2 parametre alır: fonksiyon, return tipi
 
 
-spark_df = spark_df.withColumn('age_cat2', func_udf(spark_df['age']))
+spark_df = spark_df.withColumn('age_cat2', func_udf(spark_df['age'])) # oluşturduğum User Defined Function (UDF)'ı değişkene uygulayıp spark df'e ekliyorum
 
 spark_df.show(5)
 
@@ -521,10 +538,10 @@ spark_df = spark_df.withColumn('segment', func_udf(spark_df['years']))
 
 
 ##################################################
-# Pandas UDFs
+# * Pandas UDFs
 ##################################################
 # Creates a pandas user defined function (a.k.a. vectorized user defined function).
-
+# Pandas ile yapabildiğimiz fakat Spark ile yapamadığımız fonksiyonları pandas_udf ile yazarız
 spark_df.show(5)
 
 spark_df.withColumn('age_square', spark_df.age ** 2).show()
